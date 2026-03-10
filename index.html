@@ -1,13 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<title>gtaxq tools</title>
+<meta charset="UTF-8">
+<title>gtaxq 工具站 - 开发者在线工具</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+}
+header {
+    background: #4CAF50;
+    color: white;
+    text-align: center;
+    padding: 25px 10px;
+}
+header h1 {
+    margin: 0;
+    font-size: 32px;
+}
+header p {
+    margin: 5px 0 0;
+    font-size: 16px;
+}
+.container {
+    max-width: 900px;
+    margin: 20px auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+.tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+}
+.tool-card {
+    background: #fafafa;
+    padding: 15px;
+    border-radius: 6px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    transition: transform 0.2s;
+}
+.tool-card:hover {
+    transform: translateY(-3px);
+}
+.tool-card a {
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+    display: block;
+    margin-top: 10px;
+}
+footer {
+    text-align: center;
+    color: #888;
+    margin: 40px 0 20px;
+}
+</style>
 </head>
 <body>
 
-<h1>gtaxq 工具站</h1>
-<p>网站正在建设中</p>
+<header>
+    <h1>gtaxq 工具站</h1>
+    <p>开发者在线工具集合 - 免费使用</p>
+</header>
+
+<div class="container">
+    <h2>🔥 常用工具</h2>
+    <div class="tool-grid">
+        <div class="tool-card"><div>Base64 编码/解码</div><a href="base64.html">进入</a></div>
+        <div class="tool-card"><div>MD5 加密</div><a href="md5.html">进入</a></div>
+        <div class="tool-card"><div>SHA256 加密</div><a href="sha256.html">进入</a></div>
+        <div class="tool-card"><div>URL 编码/解码</div><a href="url.html">进入</a></div>
+        <div class="tool-card"><div>JSON 格式化</div><a href="json.html">进入</a></div>
+        <div class="tool-card"><div>UUID 生成</div><a href="uuid.html">进入</a></div>
+        <div class="tool-card"><div>JWT 解码</div><a href="jwt.html">进入</a></div>
+        <div class="tool-card"><div>时间戳转换</div><a href="timestamp.html">进入</a></div>
+        <div class="tool-card"><div>AES 加密/解密</div><a href="aes.html">进入</a></div>
+        <div class="tool-card"><div>RSA 加密/解密</div><a href="rsa.html">进入</a></div>
+        <div class="tool-card"><div>HTML 转义/反转义</div><a href="html.html">进入</a></div>
+        <div class="tool-card"><div>XML 格式化</div><a href="xml.html">进入</a></div>
+        <div class="tool-card"><div>CSV 转 JSON</div><a href="csv.html">进入</a></div>
+        <div class="tool-card"><div>JSON 转 CSV</div><a href="json2csv.html">进入</a></div>
+        <div class="tool-card"><div>正则测试</div><a href="regex.html">进入</a></div>
+        <div class="tool-card"><div>二维码生成</div><a href="qrcode.html">进入</a></div>
+        <div class="tool-card"><div>条形码生成</div><a href="barcode.html">进入</a></div>
+        <div class="tool-card"><div>随机密码生成</div><a href="password.html">进入</a></div>
+        <div class="tool-card"><div>颜色转换 HEX/RGB</div><a href="color.html">进入</a></div>
+        <div class="tool-card"><div>Markdown 转 HTML</div><a href="markdown.html">进入</a></div>
+        <div class="tool-card"><div>Emoji 转 Unicode</div><a href="emoji.html">进入</a></div>
+    </div>
+</div>
+
+<footer>
+    &copy; 2026 gtaxq.cn | 开发者工具站
+</footer>
 
 </body>
 </html>
