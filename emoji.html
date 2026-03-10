@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<!-- ========== 基础 SEO ========== -->
+<title>Emoji 转 Unicode - 在线Emoji编码解码工具 | gtaxq.cn</title>
+<meta name="description" content="免费在线 Emoji 转 Unicode 工具，支持 Emoji 与 Unicode 码点互转，可查看 Emoji 的 Unicode 编码、UTF-16、HTML实体、URL编码等。">
+<meta name="keywords" content="Emoji转Unicode,Unicode转Emoji,Emoji编码,Emoji解码,表情符号编码,在线工具,gtaxq">
+<meta name="author" content="gtaxq 工具站">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- ========== 域名验证 ========== -->
+<meta name="baidu-site-verification" content="code-您的百度验证码">
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    margin: 20px;
+    background: #f5f5f5;
+}
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+h1 {
+    margin-bottom: 10px;
+    font-size: 1.8rem;
+    color: #333;
+}
+.subtitle {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+}
+button {
+    padding: 6px 12px;
+    margin: 3px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    transition: background 0.2s;
+}
+button:hover {
+    background-color: #d0d0d0;
+}
+button.primary {
+    background-color: #4a90e2;
+    color: white;
+}
+.actions {
+    margin: 15px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+.note {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 20px 0 5px;
+    background: #f9f9f9;
+    padding: 10px;
+    border-radius: 4px;
+}
+.input-section {
+    margin: 15px 0;
+}
+.input-section textarea {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    resize: vertical;
+    min-height: 100px;
+    font-family: monospace;
+}
+.input-section textarea:focus {
+    outline: none;
+    border-color: #4a90e2;
+}
+
+/* 转换选项 - 简化 */
+.convert-options {
+    display: flex;
+    gap: 15px;
+    margin: 10px 0;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.option-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* 结果卡片 - 简化版 */
+.results-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin: 15px 0;
+}
+.result-card {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.result-header {
+    background: #f0f0f0;
+    padding: 8px 12px;
+    font-weight: bold;
+    font-size: 14px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.result-content {
+    padding: 12px;
+    background: white;
+    font-family: monospace;
+    font-size: 13px;
+    word-break: break-all;
+    line-height: 1.5;
+    max-height: 100px;
+    overflow-y: auto;
+}
+.result-content.wrap {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+.copy-btn {
+    padding: 2px 8px;
+    font-size: 12px;
+}
+
+/* Emoji 面板 - 简化 */
+.emoji-panel {
+    margin: 20px 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px;
+}
+.emoji-panel h3 {
+    font-size: 16px;
+    margin-bottom: 10px;
+    color: #555;
+}
+.emoji-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+.emoji-item {
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    background: #f8f8f8;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    border: 1px solid #eee;
+}
+.emoji-item:hover {
+    transform: scale(1.1);
+    background: #e8e8e8;
+}
+
+/* 示例按钮组 */
+.example-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0;
+    justify-content: center;
+}
+.example-buttons button {
+    padding: 4px 10px;
+    font-size: 12px;
+    background-color: #f2f2f2;
+}
+
+/* 复制成功提示 */
+.copy-success {
+    color: #27ae60;
+    font-size: 13px;
+    text-align: center;
+    margin-top: 10px;
+    min-height: 20px;
+}
+
+/* 加载指示器 */
+.loading {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #4a90e2;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>😊 Emoji 转 Unicode</h1>
+    <div class="subtitle">在线Emoji编码转换 · 一键复制</div>
+
+    <!-- 操作按钮 -->
+    <div class="actions">
+        <button class="primary" onclick="convertEmoji()">🔄 转换</button>
+        <button onclick="clearAll()">🗑️ 清空</button>
+        <button onclick="swapText()">⇅ 交换</button>
+    </div>
+
+    <!-- 快捷示例按钮 -->
+    <div class="example-buttons">
+        <button onclick="loadExample('smile')">😊 表情</button>
+        <button onclick="loadExample('flags')">🚩 旗帜</button>
+        <button onclick="loadExample('food')">🍔 食物</button>
+        <button onclick="loadExample('mixed')">✨ 混合</button>
+    </div>
+
+    <!-- 输入区域 -->
+    <div class="input-section">
+        <textarea id="inputText" placeholder="输入 Emoji 或 Unicode...">😊 Hello World! 👋</textarea>
+    </div>
+
+    <!-- 转换选项 - 简化版 -->
+    <div class="convert-options">
+        <div class="option-item">
+            <input type="radio" name="convertMode" id="modeEmojiToUnicode" value="emoji" checked>
+            <label for="modeEmojiToUnicode">Emoji → Unicode</label>
+        </div>
+        <div class="option-item">
+            <input type="radio" name="convertMode" id="modeUnicodeToEmoji" value="unicode">
+            <label for="modeUnicodeToEmoji">Unicode → Emoji</label>
+        </div>
+    </div>
+
+    <!-- 结果显示区域 - 简化版，避免内存溢出 -->
+    <div class="results-grid" id="resultsGrid">
+        <!-- 原始文本 -->
+        <div class="result-card">
+            <div class="result-header">
+                <span>📄 原始文本</span>
+                <button class="copy-btn" onclick="copyText('original')">复制</button>
+            </div>
+            <div class="result-content wrap" id="displayOriginal">😊 Hello World! 👋</div>
+        </div>
+        
+        <!-- Unicode 码点 -->
+        <div class="result-card">
+            <div class="result-header">
+                <span>🔣 Unicode 码点</span>
+                <button class="copy-btn" onclick="copyText('codepoints')">复制</button>
+            </div>
+            <div class="result-content" id="displayCodepoints">U+1F60A U+0020 U+0048 ...</div>
+        </div>
+        
+        <!-- HTML 实体 -->
+        <div class="result-card">
+            <div class="result-header">
+                <span>🔧 HTML 实体</span>
+                <button class="copy-btn" onclick="copyText('html')">复制</button>
+            </div>
+            <div class="result-content" id="displayHtml">&amp;#128522; Hello World! &amp;#128075;</div>
+        </div>
+        
+        <!-- URL 编码 -->
+        <div class="result-card">
+            <div class="result-header">
+                <span>🔗 URL 编码</span>
+                <button class="copy-btn" onclick="copyText('url')">复制</button>
+            </div>
+            <div class="result-content" id="displayUrl">%F0%9F%98%8A%20Hello%20World!%20%F0%9F%91%8B</div>
+        </div>
+    </div>
+
+    <!-- Emoji 快速选择面板 - 减少数量 -->
+    <div class="emoji-panel">
+        <h3>😊 常用 Emoji</h3>
+        <div class="emoji-grid">
+            <div class="emoji-item" onclick="insertEmoji('😊')">😊</div>
+            <div class="emoji-item" onclick="insertEmoji('😂')">😂</div>
+            <div class="emoji-item" onclick="insertEmoji('❤️')">❤️</div>
+            <div class="emoji-item" onclick="insertEmoji('👍')">👍</div>
+            <div class="emoji-item" onclick="insertEmoji('🎉')">🎉</div>
+            <div class="emoji-item" onclick="insertEmoji('🔥')">🔥</div>
+            <div class="emoji-item" onclick="insertEmoji('✨')">✨</div>
+            <div class="emoji-item" onclick="insertEmoji('🌍')">🌍</div>
+        </div>
+    </div>
+
+    <!-- 复制成功提示 -->
+    <div id="copySuccess" class="copy-success"></div>
+
+    <!-- 使用说明 -->
+    <div class="note">
+        <strong>📌 说明：</strong> Emoji → Unicode 将表情转为编码；Unicode → Emoji 将编码转回表情。<br>
+        支持格式：U+1F600、\uD83D\uDE00、&amp;#128512;、%F0%9F%98%80
+    </div>
+</div>
+
+<script>
+// 简化版脚本 - 避免内存溢出
+(function() {
+    // DOM 元素
+    const inputText = document.getElementById('inputText');
+    const displayOriginal = document.getElementById('displayOriginal');
+    const displayCodepoints = document.getElementById('displayCodepoints');
+    const displayHtml = document.getElementById('displayHtml');
+    const displayUrl = document.getElementById('displayUrl');
+    const copySuccess = document.getElementById('copySuccess');
+    
+    // 转换模式
+    const modeEmoji = document.getElementById('modeEmojiToUnicode');
+    const modeUnicode = document.getElementById('modeUnicodeToEmoji');
+
+    // 存储当前结果
+    let currentResults = {
+        original: '',
+        codepoints: '',
+        html: '',
+        url: ''
+    };
+
+    // 初始化
+    function init() {
+        convertEmoji();
+        inputText.addEventListener('input', debounce(convertEmoji, 300));
+    }
+
+    // 防抖函数 - 防止频繁转换导致卡顿
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(func, wait);
+        };
+    }
+
+    // 主转换函数
+    function convertEmoji() {
+        const text = inputText.value;
+        if (!text) {
+            clearDisplays();
+            return;
+        }
+
+        // 限制输入长度，防止内存溢出
+        if (text.length > 1000) {
+            showCopyMessage('输入内容过长，请限制在1000字符以内', 'error');
+            return;
+        }
+
+        try {
+            if (modeEmoji.checked) {
+                convertEmojiToUnicode(text);
+            } else {
+                convertUnicodeToEmoji(text);
+            }
+        } catch (e) {
+            console.error('转换错误:', e);
+            showCopyMessage('转换出错，请检查输入格式', 'error');
+        }
+    }
+
+    // Emoji 转 Unicode
+    function convertEmojiToUnicode(text) {
+        const codepoints = [];
+        const htmlEntities = [];
+        const urlEncoded = [];
+        
+        // 使用 for...of 循环正确处理 surrogate pair
+        for (const char of text) {
+            const code = char.codePointAt(0);
+            
+            // Unicode 码点
+            codepoints.push(`U+${code.toString(16).toUpperCase()}`);
+            
+            // HTML 实体
+            htmlEntities.push(`&#${code};`);
+        }
+        
+        // URL 编码整个字符串
+        let urlEncodedStr = '';
+        try {
+            urlEncodedStr = encodeURIComponent(text);
+        } catch (e) {
+            urlEncodedStr = '编码错误';
+        }
+        
+        // 限制显示长度，避免界面卡顿
+        const maxItems = 50;
+        const codepointsStr = codepoints.slice(0, maxItems).join(' ') + (codepoints.length > maxItems ? ' ...' : '');
+        const htmlStr = htmlEntities.slice(0, maxItems).join('') + (htmlEntities.length > maxItems ? '...' : '');
+        
+        // 更新显示
+        displayOriginal.textContent = text;
+        displayCodepoints.textContent = codepointsStr;
+        displayHtml.textContent = htmlStr;
+        displayUrl.textContent = urlEncodedStr;
+        
+        // 保存结果供复制
+        currentResults = {
+            original: text,
+            codepoints: codepoints.join(' '),
+            html: htmlEntities.join(''),
+            url: urlEncodedStr
+        };
+    }
+
+    // Unicode 转 Emoji (简化版)
+    function convertUnicodeToEmoji(text) {
+        let result = text;
+        
+        // 解析 U+1F600 格式
+        result = result.replace(/U\+([0-9A-Fa-f]+)/g, (match, hex) => {
+            try {
+                return String.fromCodePoint(parseInt(hex, 16));
+            } catch (e) {
+                return match;
+            }
+        });
+        
+        // 解析 &#128512; 格式
+        result = result.replace(/&#(\d+);/g, (match, dec) => {
+            try {
+                return String.fromCodePoint(parseInt(dec, 10));
+            } catch (e) {
+                return match;
+            }
+        });
+        
+        // 解析 %F0%9F%98%80 格式
+        try {
+            if (result.includes('%')) {
+                result = decodeURIComponent(result);
+            }
+        } catch (e) {
+            // 忽略解码错误
+        }
+        
+        // 显示转换后的文本
+        displayOriginal.textContent = result;
+        
+        // 同时显示其编码
+        convertEmojiToUnicode(result);
+    }
+
+    // 清空显示
+    function clearDisplays() {
+        displayOriginal.textContent = '';
+        displayCodepoints.textContent = '';
+        displayHtml.textContent = '';
+        displayUrl.textContent = '';
+    }
+
+    // 插入 Emoji
+    function insertEmoji(emoji) {
+        inputText.value += emoji;
+        convertEmoji();
+    }
+
+    // 交换输入输出
+    function swapText() {
+        const output = displayOriginal.textContent;
+        if (output && output !== inputText.value) {
+            inputText.value = output;
+            convertEmoji();
+        }
+    }
+
+    // 清空
+    function clearAll() {
+        inputText.value = '';
+        clearDisplays();
+    }
+
+    // 复制文本
+    function copyText(type) {
+        let text = '';
+        switch(type) {
+            case 'original':
+                text = displayOriginal.textContent;
+                break;
+            case 'codepoints':
+                text = currentResults.codepoints || displayCodepoints.textContent;
+                break;
+            case 'html':
+                text = currentResults.html || displayHtml.textContent;
+                break;
+            case 'url':
+                text = displayUrl.textContent;
+                break;
+        }
+        
+        if (!text) {
+            showCopyMessage('没有可复制的内容', 'error');
+            return;
+        }
+        
+        navigator.clipboard.writeText(text).then(() => {
+            showCopyMessage('复制成功');
+        }).catch(() => {
+            showCopyMessage('复制失败', 'error');
+        });
+    }
+
+    // 显示消息
+    function showCopyMessage(msg, type = 'success') {
+        copySuccess.textContent = msg;
+        copySuccess.style.color = type === 'success' ? '#27ae60' : '#e74c3c';
+        setTimeout(() => {
+            copySuccess.textContent = '';
+        }, 2000);
+    }
+
+    // 加载示例
+    function loadExample(type) {
+        switch(type) {
+            case 'smile':
+                inputText.value = '😊 😂 ❤️ 👍 🎉';
+                modeEmoji.checked = true;
+                break;
+            case 'flags':
+                inputText.value = '🇨🇳 🇺🇸 🇬🇧 🇯🇵 🇰🇷';
+                modeEmoji.checked = true;
+                break;
+            case 'food':
+                inputText.value = '🍎 🍌 🍔 🍕 🌮';
+                modeEmoji.checked = true;
+                break;
+            case 'mixed':
+                inputText.value = 'Hello 😊 你好 👋 こんにちは 🌍';
+                modeEmoji.checked = true;
+                break;
+        }
+        convertEmoji();
+    }
+
+    // 暴露全局方法
+    window.convertEmoji = convertEmoji;
+    window.clearAll = clearAll;
+    window.swapText = swapText;
+    window.insertEmoji = insertEmoji;
+    window.copyText = copyText;
+    window.loadExample = loadExample;
+
+    // 初始化
+    init();
+
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>上传图片识别二维码 - gtaxq 工具站</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* 全局盒模型 — 完全沿用原框架 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 50px 10px;
+    background: #f5f5f5;
+}
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+textarea, input {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+textarea {
+    resize: vertical;
+    height: 120px;
+    font-family: monospace;
+}
+input[readonly], textarea[readonly] {
+    background-color: #f0f0f0;
+    color: #333;
+    cursor: default;
+}
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    transition: background 0.2s;
+}
+button:hover {
+    background-color: #d0d0d0;
+}
+button.primary {
+    background-color: #4a90e2;
+    color: white;
+}
+button.primary:hover {
+    background-color: #357abd;
+}
+button.success {
+    background-color: #27ae60;
+    color: white;
+}
+button.success:hover {
+    background-color: #219a52;
+}
+h1 {
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+}
+.actions {
+    margin: 15px 0 10px;
+}
+.note {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 8px 0 5px;
+    text-align: left;
+    background: #f9f9f9;
+    padding: 8px;
+    border-radius: 4px;
+}
+.upload-area {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 30px;
+    margin: 15px 0;
+    background: #fafafa;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+.upload-area:hover {
+    border-color: #4a90e2;
+}
+.upload-area.dragover {
+    border-color: #27ae60;
+    background: #e8f5e9;
+}
+.upload-icon {
+    font-size: 48px;
+    color: #999;
+    margin-bottom: 10px;
+}
+.upload-text {
+    color: #666;
+    margin-bottom: 10px;
+}
+.upload-hint {
+    font-size: 14px;
+    color: #999;
+}
+.preview-container {
+    margin: 15px 0;
+    display: none;
+}
+.preview-container img {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+.result-area {
+    background: #f5f5f5;
+    border-radius: 4px;
+    padding: 10px;
+    margin: 10px 0;
+    text-align: left;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+}
+.result-item {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    background: white;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.result-item:last-child {
+    border-bottom: none;
+}
+.result-label {
+    font-weight: bold;
+    color: #4a90e2;
+    margin-right: 10px;
+    font-size: 14px;
+    display: inline-block;
+    background: #e8f0fe;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+.result-value {
+    color: #333;
+    word-break: break-all;
+    font-family: monospace;
+    background: #f8f8f8;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+    border-left: 3px solid #4a90e2;
+}
+.error-message {
+    color: #721c24;
+    font-size: 14px;
+    text-align: left;
+    margin-top: 5px;
+    padding: 12px;
+    background: #f8d7da;
+    border-radius: 4px;
+    display: none;
+    border-left: 4px solid #dc3545;
+}
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #4a90e2;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.stats {
+    font-size: 14px;
+    color: #666;
+    margin: 10px 0;
+    text-align: left;
+    padding: 8px;
+    background: #e8f5e9;
+    border-radius: 4px;
+    border-left: 4px solid #27ae60;
+}
+.loading-indicator {
+    display: none;
+    padding: 15px;
+    text-align: center;
+    background: #e3f2fd;
+    border-radius: 4px;
+    margin: 10px 0;
+    color: #0d47a1;
+    border-left: 4px solid #2196f3;
+}
+</style>
+<!-- 引入二维码识别库 -->
+<script src="/js/jsQR.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>📷 上传图片识别二维码</h1>
+    
+    <!-- 上传区域 -->
+    <div id="uploadArea" class="upload-area">
+        <div class="upload-icon">📁</div>
+        <div class="upload-text">点击选择图片 或 拖拽图片到此区域</div>
+        <div class="upload-hint">支持 JPG、PNG、GIF、WEBP 格式 (最大 10MB)</div>
+        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+    </div>
+
+    <!-- 图片预览区域 -->
+    <div id="previewContainer" class="preview-container">
+        <img id="previewImage" src="#" alt="图片预览">
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="actions">
+        <button class="primary" onclick="scanQRCode()">🔍 识别二维码</button>
+        <button onclick="clearAll()">🗑️ 清空</button>
+        <button onclick="loadSample()">📋 测试示例</button>
+    </div>
+
+    <!-- 加载状态 -->
+    <div id="loadingIndicator" class="loading-indicator">
+        <span class="loading"></span> 正在识别中，请稍候...
+    </div>
+
+    <!-- 错误信息显示 -->
+    <div id="errorMessage" class="error-message"></div>
+
+    <!-- 识别结果统计 -->
+    <div id="stats" class="stats"></div>
+
+    <!-- 识别结果显示 -->
+    <div id="resultArea" class="result-area"></div>
+
+    <!-- 输出文本框 -->
+    <textarea id="outputText" placeholder="识别结果会显示在这里..." readonly></textarea>
+
+    <div class="note">
+        <strong>📌 说明：</strong><br>
+        • 点击上传区域或拖拽图片，选择包含二维码的图片<br>
+        • 点击"识别二维码"开始分析图片中的二维码<br>
+        • 识别结果会显示在下方区域，并自动填充到文本框<br>
+        • 点击"测试示例"使用生成的二维码进行测试<br>
+        • 纯浏览器端识别，图片不会上传到服务器，保护隐私
+    </div>
+</div>
+
+<script>
+(function() {
+    // DOM 元素
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewImage = document.getElementById('previewImage');
+    const resultArea = document.getElementById('resultArea');
+    const outputText = document.getElementById('outputText');
+    const errorMessage = document.getElementById('errorMessage');
+    const stats = document.getElementById('stats');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    // 当前图片数据
+    let currentImageData = null;
+    let currentImageFile = null;
+
+    // 初始化上传区域事件
+    function initUploadArea() {
+        // 点击上传区域触发文件选择
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // 拖拽事件
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // 文件选择事件
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+    }
+
+    // 处理上传的文件
+    function handleFile(file) {
+        // 检查文件类型
+        if (!file.type.startsWith('image/')) {
+            showError('请选择图片文件（JPG、PNG、GIF、WEBP等格式）');
+            return;
+        }
+
+        // 检查文件大小（限制 10MB）
+        if (file.size > 10 * 1024 * 1024) {
+            showError('图片大小不能超过 10MB');
+            return;
+        }
+
+        currentImageFile = file;
+
+        // 读取并预览图片
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewImage.src = e.target.result;
+            previewContainer.style.display = 'block';
+            
+            // 加载图片到内存以便识别
+            const img = new Image();
+            img.onload = () => {
+                // 创建 canvas 获取图像数据
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                
+                // 获取图像数据
+                try {
+                    const imageData = ctx.getImageData(0, 0, img.width, img.height);
+                    currentImageData = {
+                        data: imageData.data,
+                        width: img.width,
+                        height: img.height
+                    };
+                } catch (e) {
+                    showError('无法读取图片数据，可能是跨域问题或图片损坏');
+                }
+            };
+            
+            img.onerror = () => {
+                showError('图片加载失败，请检查图片格式');
+            };
+            
+            img.src = e.target.result;
+        };
+        
+        reader.onerror = () => {
+            showError('文件读取失败');
+        };
+        
+        reader.readAsDataURL(file);
+    }
+
+    // 安全地获取位置信息
+    function getLocationInfo(code) {
+        try {
+            if (!code || !code.location) return null;
+            
+            const loc = code.location;
+            const points = {};
+            
+            // 尝试不同的属性名 (兼容不同版本的 jsQR)
+            // 版本 1.x 使用 topLeft, topRight, bottomRight, bottomLeft
+            // 版本 2.x 可能使用不同的结构
+            
+            if (loc.topLeft) {
+                points.topLeft = { 
+                    x: loc.topLeft.x || 0, 
+                    y: loc.topLeft.y || 0 
+                };
+            }
+            
+            if (loc.topRight) {
+                points.topRight = { 
+                    x: loc.topRight.x || 0, 
+                    y: loc.topRight.y || 0 
+                };
+            }
+            
+            if (loc.bottomRight) {
+                points.bottomRight = { 
+                    x: loc.bottomRight.x || 0, 
+                    y: loc.bottomRight.y || 0 
+                };
+            }
+            
+            if (loc.bottomLeft) {
+                points.bottomLeft = { 
+                    x: loc.bottomLeft.x || 0, 
+                    y: loc.bottomLeft.y || 0 
+                };
+            }
+            
+            // 如果有 topLeft 和 bottomRight，返回简化的位置信息
+            if (points.topLeft && points.bottomRight) {
+                return `(${points.topLeft.x}, ${points.topLeft.y}) - (${points.bottomRight.x}, ${points.bottomRight.y})`;
+            }
+            
+            // 如果有其他组合，尝试返回可用的信息
+            if (points.topLeft) {
+                return `左上角: (${points.topLeft.x}, ${points.topLeft.y})`;
+            }
+            
+            return null;
+        } catch (e) {
+            console.log('获取位置信息失败:', e);
+            return null;
+        }
+    }
+
+    // 识别二维码
+    function scanQRCode() {
+        if (!currentImageData) {
+            showError('请先上传图片');
+            return;
+        }
+
+        // 显示加载状态
+        loadingIndicator.style.display = 'block';
+        errorMessage.style.display = 'none';
+        resultArea.innerHTML = '';
+        stats.textContent = '';
+        stats.className = 'stats';
+
+        // 使用 setTimeout 避免阻塞 UI
+        setTimeout(() => {
+            try {
+                // 使用 jsQR 识别二维码
+                const code = jsQR(
+                    currentImageData.data,
+                    currentImageData.width,
+                    currentImageData.height
+                );
+
+                loadingIndicator.style.display = 'none';
+
+                if (code) {
+                    // 识别成功
+                    displayResult(code);
+                } else {
+                    // 没有识别到二维码
+                    resultArea.innerHTML = '<div class="result-item" style="color: #666;">📭 未识别到二维码，请尝试：<br>• 确保图片中包含清晰的二维码<br>• 调整图片角度或亮度<br>• 使用其他图片测试</div>';
+                    stats.innerHTML = '❌ 未识别到二维码';
+                    stats.className = 'stats';
+                    stats.style.background = '#fff3cd';
+                    stats.style.borderLeftColor = '#ffc107';
+                    outputText.value = '';
+                }
+            } catch (e) {
+                loadingIndicator.style.display = 'none';
+                showError('识别失败：' + e.message + '\n请尝试其他图片或调整图片质量');
+            }
+        }, 100);
+    }
+
+    // 显示单个识别结果
+    function displayResult(code) {
+        // 清空结果区域
+        resultArea.innerHTML = '';
+        
+        // 获取位置信息（安全的方式）
+        const locationInfo = getLocationInfo(code);
+        
+        // 构建结果HTML
+        const resultDiv = document.createElement('div');
+        resultDiv.className = 'result-item';
+        
+        let locationHtml = '';
+        if (locationInfo) {
+            locationHtml = `
+                <div style="font-size: 12px; color: #666; margin-top: 8px; padding-top: 5px; border-top: 1px dashed #eee;">
+                    📍 位置: ${locationInfo}
+                </div>
+            `;
+        }
+        
+        resultDiv.innerHTML = `
+            <div>
+                <span class="result-label">📌 识别结果</span>
+            </div>
+            <div class="result-value">${escapeHTML(code.data) || '空'}</div>
+            ${locationHtml}
+        `;
+        
+        resultArea.appendChild(resultDiv);
+
+        // 更新统计信息
+        stats.innerHTML = '✅ 成功识别到二维码';
+        stats.className = 'stats';
+        
+        // 将结果填入输出框
+        outputText.value = code.data;
+    }
+
+    // 转义HTML特殊字符
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // 显示错误信息
+    function showError(message) {
+        errorMessage.innerHTML = '❌ ' + escapeHTML(message);
+        errorMessage.style.display = 'block';
+        loadingIndicator.style.display = 'none';
+    }
+
+    // 清空所有内容
+    function clearAll() {
+        // 清空文件输入
+        fileInput.value = '';
+        
+        // 隐藏预览
+        previewContainer.style.display = 'none';
+        previewImage.src = '#';
+        
+        // 清空数据
+        currentImageData = null;
+        currentImageFile = null;
+        
+        // 清空结果
+        resultArea.innerHTML = '';
+        outputText.value = '';
+        stats.textContent = '';
+        stats.className = 'stats';
+        errorMessage.style.display = 'none';
+        loadingIndicator.style.display = 'none';
+    }
+
+    // 加载测试示例
+    function loadSample() {
+        // 检查 QRCode 库是否可用
+        if (typeof QRCode === 'undefined') {
+            showError('二维码生成库未加载，请刷新页面重试');
+            return;
+        }
+
+        // 显示加载状态
+        loadingIndicator.style.display = 'block';
+        errorMessage.style.display = 'none';
+        
+        // 创建一个示例二维码图片
+        const canvas = document.createElement('canvas');
+        canvas.width = 300;
+        canvas.height = 300;
+        
+        // 生成二维码
+        QRCode.toCanvas(canvas, 'https://github.com', { 
+            width: 300,
+            margin: 1,
+            color: {
+                dark: '#000000',
+                light: '#ffffff'
+            }
+        }, (error) => {
+            if (error) {
+                loadingIndicator.style.display = 'none';
+                showError('生成示例失败：' + error.message);
+                return;
+            }
+            
+            // 将 canvas 转换为图片
+            previewImage.src = canvas.toDataURL('image/png');
+            previewContainer.style.display = 'block';
+            
+            // 获取图像数据
+            try {
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                currentImageData = {
+                    data: imageData.data,
+                    width: canvas.width,
+                    height: canvas.height
+                };
+                
+                // 自动识别
+                setTimeout(() => {
+                    scanQRCode();
+                }, 100);
+            } catch (e) {
+                loadingIndicator.style.display = 'none';
+                showError('获取图像数据失败：' + e.message);
+            }
+        });
+    }
+
+    // 暴露全局方法
+    window.scanQRCode = scanQRCode;
+    window.clearAll = clearAll;
+    window.loadSample = loadSample;
+
+    // 初始化
+    initUploadArea();
+
+})();
+</script>
+
+<!-- 引入二维码生成库用于示例 -->
+<script src="/js/qrcode.min.js"></script>
+
+<!-- 继承原框架风格，增加上传图片识别二维码功能 - 彻底修复位置信息错误 -->
+</body>
+</html>

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>字节转换 - gtaxq 工具站</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* 全局盒模型 — 完全沿用原框架 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 50px 10px;
+    background: #f5f5f5;
+}
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+/* 文本区域 / 输入框风格统一 */
+textarea, .input-row input {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+/* 让只读框保持灰色背景，但可选中 */
+textarea[readonly], input[readonly] {
+    background-color: #f0f0f0;
+    color: #333;
+    cursor: default;
+}
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    transition: background 0.2s;
+}
+button:hover {
+    background-color: #d0d0d0;
+}
+h1 {
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+}
+/* 增加一个简洁的说明与单位选择行 */
+.unit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin: 10px 0;
+}
+.unit-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.unit-group label {
+    font-size: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f2f2f2;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+}
+.unit-group input[type="radio"] {
+    margin-right: 2px;
+    cursor: pointer;
+}
+/* 小数位数提示 */
+.small-note {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 8px 0 5px;
+    text-align: left;
+}
+/* 按钮区域 */
+.actions {
+    margin: 15px 0 10px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📦 字节转换</h1>
+    <!-- 输入区：原始数值 + 当前单位（单选） -->
+    <div class="input-row">
+        <input type="number" id="inputValue" value="1024" step="any" placeholder="输入数值">
+    </div>
+
+    <div class="unit-row">
+        <span style="font-weight: 500;">从：</span>
+        <div class="unit-group" id="fromUnitGroup">
+            <label><input type="radio" name="fromUnit" value="B" checked> B (字节)</label>
+            <label><input type="radio" name="fromUnit" value="KB"> KB</label>
+            <label><input type="radio" name="fromUnit" value="MB"> MB</label>
+            <label><input type="radio" name="fromUnit" value="GB"> GB</label>
+            <label><input type="radio" name="fromUnit" value="TB"> TB</label>
+        </div>
+    </div>
+
+    <div class="unit-row">
+        <span style="font-weight: 500;">转换为：</span>
+        <div class="unit-group" id="toUnitGroup">
+            <label><input type="radio" name="toUnit" value="B"> B</label>
+            <label><input type="radio" name="toUnit" value="KB" checked> KB</label>
+            <label><input type="radio" name="toUnit" value="MB"> MB</label>
+            <label><input type="radio" name="toUnit" value="GB"> GB</label>
+            <label><input type="radio" name="toUnit" value="TB"> TB</label>
+        </div>
+    </div>
+
+    <!-- 结果显示区域 (只读文本框风格保持与原框架一致) -->
+    <textarea id="output" placeholder="转换结果" readonly>1.024 KB</textarea>
+
+    <!-- 操作按钮区：转换、清空 (以及一个互换按钮) -->
+    <div class="actions">
+        <button onclick="convertUnit()">🔄 转换</button>
+        <button onclick="swapUnits()">⇆ 互换单位</button>
+        <button onclick="clearAll()">🗑️ 清空</button>
+    </div>
+
+    <div class="small-note">
+        * 基于 1 KB = 1024 B, 1 MB = 1024 KB, 1 GB = 1024 MB, 1 TB = 1024 GB。<br>
+        * 结果保留 4 位小数，末尾零省略。
+    </div>
+</div>
+
+<script>
+(function() {
+    // 获取dom元素
+    const inputEl = document.getElementById('inputValue');
+    const outputEl = document.getElementById('output');
+    const fromRadios = document.getElementsByName('fromUnit');
+    const toRadios = document.getElementsByName('toUnit');
+
+    // 单位转字节系数 (映射到字节)
+    const unitFactors = {
+        'B': 1,
+        'KB': 1024,
+        'MB': 1024 * 1024,
+        'GB': 1024 * 1024 * 1024,
+        'TB': 1024 * 1024 * 1024 * 1024
+    };
+
+    // 格式化输出：去掉多余尾随零，保留最多4位小数，若非整数则保留必要精度
+    function formatResult(value) {
+        if (value === null || value === undefined || isNaN(value)) return '无效数值';
+        // 保留4位小数，再去除多余的尾随零与小数点
+        let fixed = value.toFixed(4);
+        // 去掉末尾零
+        fixed = fixed.replace(/\.?0+$/, '');
+        // 如果变成空或者只有负号，补零 (例如 0 显示 0)
+        if (fixed === '' || fixed === '-') fixed = '0';
+        return fixed;
+    }
+
+    // 核心转换函数
+    function convertUnit() {
+        // 获取输入数值
+        let rawValue = inputEl.value.trim();
+        if (rawValue === '') {
+            outputEl.value = '请输入数值';
+            return;
+        }
+        const num = Number(rawValue);
+        if (isNaN(num)) {
+            outputEl.value = '请输入有效的数字';
+            return;
+        }
+
+        // 获取选中的 from 单位
+        let fromUnit = 'B';
+        for (let radio of fromRadios) {
+            if (radio.checked) {
+                fromUnit = radio.value;
+                break;
+            }
+        }
+        // 获取选中的 to 单位
+        let toUnit = 'KB';
+        for (let radio of toRadios) {
+            if (radio.checked) {
+                toUnit = radio.value;
+                break;
+            }
+        }
+
+        // 计算：先转为字节，再转为目标单位
+        const factorFrom = unitFactors[fromUnit];
+        const factorTo = unitFactors[toUnit];
+
+        // 防止除以零 (其实不会，但安全)
+        if (!factorTo) {
+            outputEl.value = '目标单位错误';
+            return;
+        }
+
+        // 字节数
+        const bytes = num * factorFrom;
+        // 目标值
+        const result = bytes / factorTo;
+
+        // 格式化输出，加上单位
+        const formatted = formatResult(result);
+        outputEl.value = `${formatted} ${toUnit}`;
+    }
+
+    // 互换单位：from 与 to 选中项交换，并且自动触发一次转换
+    function swapUnits() {
+        // 获取当前选中的 from 和 to
+        let fromVal = 'B';
+        let toVal = 'KB';
+        for (let radio of fromRadios) if (radio.checked) fromVal = radio.value;
+        for (let radio of toRadios) if (radio.checked) toVal = radio.value;
+
+        // 设置互换
+        for (let radio of fromRadios) {
+            radio.checked = (radio.value === toVal);
+        }
+        for (let radio of toRadios) {
+            radio.checked = (radio.value === fromVal);
+        }
+
+        // 互换后自动转换
+        convertUnit();
+    }
+
+    // 清空输入和输出 (参照原框架 clearText 行为)
+    function clearAll() {
+        inputEl.value = '';
+        outputEl.value = '';
+        // 可选复位单位到默认：B -> KB (不过原框架清空不清除选项，这里保留)
+        // 为了更像原框架，不清除单位，但可以重置一个友好的默认？ 为符合预期，不清除单位。
+        // 但多数用户期待清空后重新输入，不重置单位。
+        // 如果想重置单位可放开注释，但为了遵循原框架“清空”仅清空文字，我们不做重置。
+        // 但这里让单位保留原样。
+    }
+
+    // 为了易用性，将函数挂载到window (原框架风格)
+    window.convertUnit = convertUnit;
+    window.swapUnits = swapUnits;
+    window.clearAll = clearAll;
+
+    // 页面加载后执行一次默认转换，让初始值 (1024 B -> KB) 显示 1.024 KB
+    window.addEventListener('DOMContentLoaded', () => {
+        // 确保初始单选: from B, to KB, input 1024
+        // 但以防html修改，我们强制设置一下默认选中，保证一致性。
+        // 设置 from B 选中
+        for (let radio of fromRadios) {
+            if (radio.value === 'B') radio.checked = true;
+        }
+        for (let radio of toRadios) {
+            if (radio.value === 'KB') radio.checked = true;
+        }
+        inputEl.value = '1024';
+        convertUnit();
+    });
+
+    // 附加: 输入框支持回车触发转换 (nice to have)
+    inputEl.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            convertUnit();
+        }
+    });
+
+})();
+</script>
+
+<!-- 额外说明：本工具基于原框架风格扩展，保留了所有原有样式和交互习惯 -->
+</body>
+</html>

@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>AES加密/解密 - gtaxq 工具站</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* 全局盒模型 — 完全沿用原框架 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 50px 10px;
+    background: #f5f5f5;
+}
+.container {
+    max-width: 650px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+textarea, input, select {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+textarea {
+    resize: vertical;
+}
+input[readonly], textarea[readonly] {
+    background-color: #f0f0f0;
+    color: #333;
+    cursor: default;
+}
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    transition: background 0.2s;
+}
+button:hover {
+    background-color: #d0d0d0;
+}
+button.primary {
+    background-color: #4a90e2;
+    color: white;
+}
+button.primary:hover {
+    background-color: #357abd;
+}
+h1 {
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+}
+.actions {
+    margin: 15px 0 10px;
+}
+.note {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 8px 0 5px;
+    text-align: left;
+    background: #f9f9f9;
+    padding: 8px;
+    border-radius: 4px;
+}
+.param-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 10px 0;
+    align-items: center;
+}
+.param-group {
+    flex: 1 1 200px;
+    text-align: left;
+}
+.param-group label {
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+    color: #555;
+}
+.param-group input, .param-group select {
+    margin-bottom: 0;
+}
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+    flex-wrap: wrap;
+}
+.checkbox-row label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+.key-gen {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+.key-gen button {
+    margin: 0;
+    padding: 8px 12px;
+    white-space: nowrap;
+}
+</style>
+<!-- 引入 CryptoJS 库 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔒 AES 加密/解密</h1>
+    
+    <!-- 输入文本 -->
+    <textarea id="inputText" placeholder="输入要加密或解密的文本..." rows="3"></textarea>
+
+    <!-- 密钥和IV配置 -->
+    <div class="param-row">
+        <div class="param-group">
+            <label>🔑 密钥 (Key)</label>
+            <input type="text" id="keyInput" placeholder="输入密钥" value="1234567890123456">
+        </div>
+        <div class="param-group">
+            <label>🎲 偏移量 (IV) <span style="font-weight: normal;">(CBC模式需要)</span></label>
+            <input type="text" id="ivInput" placeholder="输入IV(可选)" value="1234567890123456">
+        </div>
+    </div>
+
+    <!-- 参数配置行 -->
+    <div class="param-row">
+        <div class="param-group">
+            <label>📏 密钥长度</label>
+            <select id="keySize">
+                <option value="128">128位 (16字节)</option>
+                <option value="192">192位 (24字节)</option>
+                <option value="256" selected>256位 (32字节)</option>
+            </select>
+        </div>
+        <div class="param-group">
+            <label>🔄 加密模式</label>
+            <select id="mode">
+                <option value="CBC" selected>CBC (需要IV)</option>
+                <option value="ECB">ECB (不需要IV)</option>
+                <option value="CFB">CFB</option>
+                <option value="OFB">OFB</option>
+                <option value="CTR">CTR</option>
+            </select>
+        </div>
+        <div class="param-group">
+            <label>📦 填充方式</label>
+            <select id="padding">
+                <option value="Pkcs7" selected>PKCS7</option>
+                <option value="ZeroPadding">Zero Padding</option>
+                <option value="NoPadding">No Padding</option>
+                <option value="Iso10126">ISO 10126</option>
+                <option value="Iso97971">ISO 97971</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 输出格式选项 -->
+    <div class="checkbox-row">
+        <label>
+            <input type="checkbox" id="outputBase64" checked> 输出/输入使用 Base64 (否则使用 Hex)
+        </label>
+        <label>
+            <input type="checkbox" id="autoGenIV"> 自动生成IV (加密时)
+        </label>
+        <div class="key-gen">
+            <button onclick="generateRandomKey()">🎲 随机密钥</button>
+            <button onclick="generateRandomIV()">🎲 随机IV</button>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="actions">
+        <button class="primary" onclick="encryptAES()">🔐 加密</button>
+        <button class="primary" onclick="decryptAES()">🔓 解密</button>
+        <button onclick="swapText()">⇅ 上下互换</button>
+        <button onclick="clearAll()">🗑️ 清空</button>
+    </div>
+
+    <!-- 输出结果 -->
+    <textarea id="outputText" placeholder="加密/解密结果会显示在这里..." readonly rows="4"></textarea>
+
+    <div class="note">
+        <strong>📌 说明：</strong><br>
+        • 基于 CryptoJS 实现，支持 AES-128/192/256<br>
+        • 密钥长度会根据密钥自动调整/填充，建议使用对应字节数的密钥<br>
+        • IV 长度必须为16字节，ECB模式不需要IV<br>
+        • 输出格式：Base64 或 Hex，解密时会自动识别<br>
+        • 自动生成IV仅在加密时生效，生成的IV会显示在结果下方<br>
+        • 注意：加密结果会包含 IV 前缀（当自动生成时），解密时需要正确的IV
+    </div>
+</div>
+
+<script>
+(function() {
+    // DOM 元素
+    const inputText = document.getElementById('inputText');
+    const outputText = document.getElementById('outputText');
+    const keyInput = document.getElementById('keyInput');
+    const ivInput = document.getElementById('ivInput');
+    const keySize = document.getElementById('keySize');
+    const mode = document.getElementById('mode');
+    const padding = document.getElementById('padding');
+    const outputBase64 = document.getElementById('outputBase64');
+    const autoGenIV = document.getElementById('autoGenIV');
+
+    // 辅助函数：将字符串转为WordArray
+    function stringToWordArray(str) {
+        return CryptoJS.enc.Utf8.parse(str);
+    }
+
+    // 辅助函数：WordArray转字符串
+    function wordArrayToString(wordArray) {
+        return CryptoJS.enc.Utf8.stringify(wordArray);
+    }
+
+    // 辅助函数：Hex转WordArray
+    function hexToWordArray(hex) {
+        return CryptoJS.enc.Hex.parse(hex);
+    }
+
+    // 辅助函数：WordArray转Hex
+    function wordArrayToHex(wordArray) {
+        return CryptoJS.enc.Hex.stringify(wordArray);
+    }
+
+    // 辅助函数：Base64转WordArray
+    function base64ToWordArray(base64) {
+        return CryptoJS.enc.Base64.parse(base64);
+    }
+
+    // 辅助函数：WordArray转Base64
+    function wordArrayToBase64(wordArray) {
+        return CryptoJS.enc.Base64.stringify(wordArray);
+    }
+
+    // 获取CryptoJS模式对象
+    function getCryptoJSMode(modeStr) {
+        const modes = {
+            'CBC': CryptoJS.mode.CBC,
+            'ECB': CryptoJS.mode.ECB,
+            'CFB': CryptoJS.mode.CFB,
+            'OFB': CryptoJS.mode.OFB,
+            'CTR': CryptoJS.mode.CTR
+        };
+        return modes[modeStr] || CryptoJS.mode.CBC;
+    }
+
+    // 获取CryptoJS填充方式
+    function getCryptoJSPadding(paddingStr) {
+        const paddings = {
+            'Pkcs7': CryptoJS.pad.Pkcs7,
+            'ZeroPadding': CryptoJS.pad.ZeroPadding,
+            'NoPadding': CryptoJS.pad.NoPadding,
+            'Iso10126': CryptoJS.pad.Iso10126,
+            'Iso97971': CryptoJS.pad.Iso97971
+        };
+        return paddings[paddingStr] || CryptoJS.pad.Pkcs7;
+    }
+
+    // 处理密钥：根据密钥长度调整
+    function processKey(keyStr, keySizeBits) {
+        // 将密钥转为WordArray
+        let keyWordArray = CryptoJS.enc.Utf8.parse(keyStr);
+        const keyBytes = keyWordArray.sigBytes;
+        const targetBytes = keySizeBits / 8;
+        
+        if (keyBytes > targetBytes) {
+            // 截断
+            keyWordArray = CryptoJS.lib.WordArray.create(keyWordArray.words.slice(0, Math.ceil(targetBytes / 4)), targetBytes);
+        } else if (keyBytes < targetBytes) {
+            // 填充0 (PKCS7风格填充，但简单补0)
+            const words = keyWordArray.words.slice();
+            const missingBytes = targetBytes - keyBytes;
+            const missingWords = Math.ceil(missingBytes / 4);
+            for (let i = 0; i < missingWords; i++) {
+                words.push(0);
+            }
+            keyWordArray = CryptoJS.lib.WordArray.create(words, targetBytes);
+        }
+        return keyWordArray;
+    }
+
+    // 处理IV
+    function processIV(ivStr, modeStr) {
+        if (modeStr === 'ECB') {
+            return null; // ECB不需要IV
+        }
+        if (!ivStr) {
+            return null;
+        }
+        let ivWordArray = CryptoJS.enc.Utf8.parse(ivStr);
+        // IV必须16字节
+        if (ivWordArray.sigBytes > 16) {
+            ivWordArray = CryptoJS.lib.WordArray.create(ivWordArray.words.slice(0, 4), 16);
+        } else if (ivWordArray.sigBytes < 16) {
+            const words = ivWordArray.words.slice();
+            const missingBytes = 16 - ivWordArray.sigBytes;
+            const missingWords = Math.ceil(missingBytes / 4);
+            for (let i = 0; i < missingWords; i++) {
+                words.push(0);
+            }
+            ivWordArray = CryptoJS.lib.WordArray.create(words, 16);
+        }
+        return ivWordArray;
+    }
+
+    // 生成随机密钥 (根据选择的密钥长度)
+    function generateRandomKey() {
+        const sizeBits = parseInt(keySize.value);
+        const sizeBytes = sizeBits / 8;
+        const randomWordArray = CryptoJS.lib.WordArray.random(sizeBytes);
+        // 转为UTF8字符串？但随机字节可能不是有效UTF8，所以转为Hex显示
+        const hexKey = wordArrayToHex(randomWordArray);
+        // 同时提供一个Base64版本，但输入框希望是字符串，我们使用Hex
+        keyInput.value = hexKey;
+    }
+
+    // 生成随机IV (16字节)
+    function generateRandomIV() {
+        const randomIV = CryptoJS.lib.WordArray.random(16);
+        ivInput.value = wordArrayToHex(randomIV);
+    }
+
+    // 加密函数
+    function encryptAES() {
+        const text = inputText.value.trim();
+        if (!text) {
+            outputText.value = '请输入要加密的文本';
+            return;
+        }
+
+        const keyStr = keyInput.value.trim();
+        if (!keyStr) {
+            outputText.value = '请输入密钥';
+            return;
+        }
+
+        const modeStr = mode.value;
+        const paddingStr = padding.value;
+        const keySizeBits = parseInt(keySize.value);
+        const useBase64 = outputBase64.checked;
+        const autoIV = autoGenIV.checked;
+
+        try {
+            // 处理密钥
+            const keyWordArray = processKey(keyStr, keySizeBits);
+            
+            // 处理IV
+            let ivWordArray = null;
+            if (modeStr !== 'ECB') {
+                if (autoIV) {
+                    // 自动生成16字节IV
+                    ivWordArray = CryptoJS.lib.WordArray.random(16);
+                    // 显示生成的IV到IV输入框（方便解密）
+                    ivInput.value = wordArrayToHex(ivWordArray);
+                } else {
+                    ivWordArray = processIV(ivInput.value, modeStr);
+                }
+            }
+
+            // 准备加密参数
+            const cfg = {
+                mode: getCryptoJSMode(modeStr),
+                padding: getCryptoJSPadding(paddingStr)
+            };
+            
+            if (ivWordArray && modeStr !== 'ECB') {
+                cfg.iv = ivWordArray;
+            }
+
+            // 执行加密
+            const encrypted = CryptoJS.AES.encrypt(text, keyWordArray, cfg);
+            
+            // 获取密文WordArray
+            const cipherTextWordArray = encrypted.ciphertext;
+            
+            // 输出格式
+            let result;
+            if (useBase64) {
+                result = wordArrayToBase64(cipherTextWordArray);
+            } else {
+                result = wordArrayToHex(cipherTextWordArray);
+            }
+
+            // 如果自动生成了IV，可以在结果中包含IV前缀，但为了方便，我们单独显示
+            let output = result;
+            if (autoIV && modeStr !== 'ECB') {
+                output = result + '\n\n[自动生成IV已填入IV输入框，请妥善保存]';
+            }
+
+            outputText.value = output;
+        } catch (e) {
+            outputText.value = `加密失败：${e.message}`;
+        }
+    }
+
+    // 解密函数
+    function decryptAES() {
+        const text = inputText.value.trim();
+        if (!text) {
+            outputText.value = '请输入要解密的文本';
+            return;
+        }
+
+        const keyStr = keyInput.value.trim();
+        if (!keyStr) {
+            outputText.value = '请输入密钥';
+            return;
+        }
+
+        const modeStr = mode.value;
+        const paddingStr = padding.value;
+        const keySizeBits = parseInt(keySize.value);
+        const useBase64 = outputBase64.checked;
+
+        try {
+            // 处理密钥
+            const keyWordArray = processKey(keyStr, keySizeBits);
+            
+            // 处理IV
+            let ivWordArray = null;
+            if (modeStr !== 'ECB') {
+                ivWordArray = processIV(ivInput.value, modeStr);
+                if (!ivWordArray && modeStr !== 'ECB') {
+                    outputText.value = 'CBC等模式需要IV，请填写IV或切换到ECB模式';
+                    return;
+                }
+            }
+
+            // 准备解密参数
+            const cfg = {
+                mode: getCryptoJSMode(modeStr),
+                padding: getCryptoJSPadding(paddingStr)
+            };
+            
+            if (ivWordArray && modeStr !== 'ECB') {
+                cfg.iv = ivWordArray;
+            }
+
+            // 将输入的密文转为CryptoJS格式
+            let ciphertextWordArray;
+            try {
+                if (useBase64) {
+                    // 尝试作为Base64解析
+                    ciphertextWordArray = base64ToWordArray(text);
+                } else {
+                    // 尝试作为Hex解析
+                    ciphertextWordArray = hexToWordArray(text);
+                }
+            } catch (e) {
+                outputText.value = '密文格式错误：无法解析为' + (useBase64 ? 'Base64' : 'Hex');
+                return;
+            }
+
+            // 创建CipherParams对象
+            const cipherParams = CryptoJS.lib.CipherParams.create({
+                ciphertext: ciphertextWordArray
+            });
+
+            // 执行解密
+            const decrypted = CryptoJS.AES.decrypt(cipherParams, keyWordArray, cfg);
+            
+            // 转为UTF8字符串
+            try {
+                const decryptedStr = wordArrayToString(decrypted);
+                outputText.value = decryptedStr;
+            } catch (e) {
+                outputText.value = '解密成功但无法转为文本，可能密钥/IV错误或数据损坏';
+            }
+        } catch (e) {
+            outputText.value = `解密失败：${e.message}`;
+        }
+    }
+
+    // 交换输入输出
+    function swapText() {
+        const output = outputText.value;
+        if (output && !output.includes('失败') && !output.includes('请输入')) {
+            inputText.value = output;
+            outputText.value = '';
+        }
+    }
+
+    // 清空
+    function clearAll() {
+        inputText.value = '';
+        outputText.value = '';
+    }
+
+    // 模式改变时，IV输入框的提示
+    function updateIVVisibility() {
+        const modeStr = mode.value;
+        if (modeStr === 'ECB') {
+            ivInput.placeholder = 'ECB模式不需要IV';
+            ivInput.disabled = true;
+        } else {
+            ivInput.placeholder = '输入IV(16字节)';
+            ivInput.disabled = false;
+        }
+    }
+
+    // 初始化事件监听
+    mode.addEventListener('change', updateIVVisibility);
+    
+    // 设置初始状态
+    updateIVVisibility();
+
+    // 暴露全局方法
+    window.encryptAES = encryptAES;
+    window.decryptAES = decryptAES;
+    window.generateRandomKey = generateRandomKey;
+    window.generateRandomIV = generateRandomIV;
+    window.swapText = swapText;
+    window.clearAll = clearAll;
+
+    // 页面加载后生成默认随机密钥和IV
+    window.addEventListener('DOMContentLoaded', () => {
+        generateRandomKey();
+        generateRandomIV();
+    });
+
+})();
+</script>
+
+<!-- 继承原框架风格，增加AES加密解密功能 -->
+</body>
+</html>

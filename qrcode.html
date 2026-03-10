@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>二维码生成 - gtaxq 工具站</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* 全局盒模型 — 完全沿用原框架 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 50px 10px;
+    background: #f5f5f5;
+}
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+textarea, input {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+textarea {
+    resize: vertical;
+    height: 100px;
+}
+input[readonly] {
+    background-color: #f0f0f0;
+    color: #333;
+    cursor: default;
+}
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    transition: background 0.2s;
+}
+button:hover {
+    background-color: #d0d0d0;
+}
+button.primary {
+    background-color: #4a90e2;
+    color: white;
+}
+button.primary:hover {
+    background-color: #357abd;
+}
+button.success {
+    background-color: #27ae60;
+    color: white;
+}
+button.success:hover {
+    background-color: #219a52;
+}
+h1 {
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+}
+.actions {
+    margin: 15px 0 10px;
+}
+.note {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 8px 0 5px;
+    text-align: left;
+    background: #f9f9f9;
+    padding: 8px;
+    border-radius: 4px;
+}
+.param-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 10px 0;
+    justify-content: center;
+    align-items: center;
+    background: #f8f8f8;
+    padding: 10px;
+    border-radius: 8px;
+}
+.param-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.param-group label {
+    font-size: 14px;
+    white-space: nowrap;
+}
+.param-group input[type="number"], 
+.param-group select {
+    width: 80px;
+    padding: 5px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.param-group input[type="color"] {
+    width: 50px;
+    height: 35px;
+    padding: 2px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+}
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    cursor: pointer;
+}
+.qrcode-container {
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    display: inline-block;
+}
+.qrcode-container canvas {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+.download-buttons {
+    margin: 15px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+.example-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin: 10px 0;
+}
+.example-buttons button {
+    padding: 5px 10px;
+    font-size: 14px;
+    background-color: #f2f2f2;
+}
+.error-message {
+    color: #e74c3c;
+    font-size: 14px;
+    text-align: left;
+    margin-top: 5px;
+    padding: 5px;
+    background: #fdeaea;
+    border-radius: 4px;
+    display: none;
+}
+</style>
+<!-- 引入二维码生成库 -->
+<script src="/js/qrcode.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>📱 二维码生成器</h1>
+    
+    <!-- 输入内容 -->
+    <textarea id="inputText" placeholder="输入要生成二维码的文本或URL...">https://gtaxq.cn</textarea>
+
+    <!-- 二维码参数设置 -->
+    <div class="param-row">
+        <div class="param-group">
+            <label>尺寸:</label>
+            <input type="number" id="size" min="100" max="1000" value="250" step="10">
+        </div>
+        <div class="param-group">
+            <label>容错级别:</label>
+            <select id="errorLevel">
+                <option value="L">L (7%)</option>
+                <option value="M" selected>M (15%)</option>
+                <option value="Q">Q (25%)</option>
+                <option value="H">H (30%)</option>
+            </select>
+        </div>
+        <div class="param-group">
+            <label>前景色:</label>
+            <input type="color" id="colorDark" value="#000000">
+        </div>
+        <div class="param-group">
+            <label>背景色:</label>
+            <input type="color" id="colorLight" value="#ffffff">
+        </div>
+    </div>
+
+    <!-- 边距选项 -->
+    <div class="param-row">
+        <div class="param-group">
+            <label>边距:</label>
+            <input type="number" id="margin" min="0" max="10" value="1">
+        </div>
+        <div class="checkbox-group">
+            <label>
+                <input type="checkbox" id="showText"> 下方显示文本
+            </label>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="actions">
+        <button class="primary" onclick="generateQRCode()">✨ 生成二维码</button>
+        <button onclick="clearAll()">🗑️ 清空</button>
+        <button onclick="downloadQRCode('png')">📥 下载 PNG</button>
+        <button onclick="downloadQRCode('svg')">📥 下载 SVG</button>
+    </div>
+
+    <!-- 快捷示例按钮 -->
+    <div class="example-buttons">
+        <button onclick="loadExample('url')">🌐 URL</button>
+        <button onclick="loadExample('text')">📝 文本</button>
+        <button onclick="loadExample('vcard')">📇 名片</button>
+        <button onclick="loadExample('wifi')">📶 WiFi</button>
+        <button onclick="loadExample('email')">📧 邮件</button>
+        <button onclick="loadExample('tel')">📞 电话</button>
+    </div>
+
+    <!-- 错误信息显示 -->
+    <div id="errorMessage" class="error-message"></div>
+
+    <!-- 二维码显示区域 -->
+    <div id="qrcodeContainer" class="qrcode-container">
+        <canvas id="qrcodeCanvas"></canvas>
+    </div>
+    
+    <!-- 文本显示区域（可选） -->
+    <div id="textDisplay" style="margin: 10px 0; word-break: break-all; display: none;"></div>
+
+    <div class="note">
+        <strong>📌 说明：</strong><br>
+        • 输入文本或URL，点击"生成二维码"即可创建二维码<br>
+        • 支持自定义尺寸、容错级别、颜色和边距<br>
+        • 容错级别越高，二维码越耐脏污，但图案更密集<br>
+        • 点击下载按钮可保存为 PNG 或 SVG 格式<br>
+        • 提供常用格式示例：URL、文本、名片(vCard)、WiFi配置等<br>
+        • WiFi格式示例: WIFI:S:网络名;T:加密方式;P:密码;;
+    </div>
+</div>
+
+<script>
+(function() {
+    // DOM 元素
+    const inputText = document.getElementById('inputText');
+    const canvas = document.getElementById('qrcodeCanvas');
+    const container = document.getElementById('qrcodeContainer');
+    const textDisplay = document.getElementById('textDisplay');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    const size = document.getElementById('size');
+    const errorLevel = document.getElementById('errorLevel');
+    const colorDark = document.getElementById('colorDark');
+    const colorLight = document.getElementById('colorLight');
+    const margin = document.getElementById('margin');
+    const showText = document.getElementById('showText');
+
+    // 当前生成的二维码数据URL (用于下载)
+    let currentQRDataURL = null;
+
+    // 生成二维码
+    function generateQRCode() {
+        const text = inputText.value.trim();
+        
+        // 隐藏错误信息
+        errorMessage.style.display = 'none';
+        
+        if (!text) {
+            errorMessage.textContent = '请输入要生成二维码的内容';
+            errorMessage.style.display = 'block';
+            return;
+        }
+
+        // 二维码配置
+        const options = {
+            width: parseInt(size.value) || 250,
+            margin: parseInt(margin.value) || 1,
+            color: {
+                dark: colorDark.value,
+                light: colorLight.value
+            },
+            errorCorrectionLevel: errorLevel.value
+        };
+
+        // 显示加载状态
+        canvas.style.opacity = '0.5';
+        
+        // 生成二维码
+        QRCode.toCanvas(canvas, text, options, function(error) {
+            canvas.style.opacity = '1';
+            
+            if (error) {
+                errorMessage.textContent = '生成失败：' + error.message;
+                errorMessage.style.display = 'block';
+                console.error(error);
+                return;
+            }
+            
+            // 获取二维码数据URL (用于下载)
+            currentQRDataURL = canvas.toDataURL('image/png');
+            
+            // 显示文本内容（可选）
+            if (showText.checked) {
+                textDisplay.style.display = 'block';
+                textDisplay.textContent = text;
+            } else {
+                textDisplay.style.display = 'none';
+            }
+        });
+    }
+
+    // 下载二维码
+    function downloadQRCode(format) {
+        if (!currentQRDataURL) {
+            errorMessage.textContent = '请先生成二维码';
+            errorMessage.style.display = 'block';
+            return;
+        }
+        
+        const text = inputText.value.trim() || 'qrcode';
+        // 生成文件名（取前20个字符作为文件名）
+        let filename = text.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+        if (!filename) filename = 'qrcode';
+        
+        if (format === 'png') {
+            // 下载PNG
+            const link = document.createElement('a');
+            link.download = filename + '.png';
+            link.href = currentQRDataURL;
+            link.click();
+        } else if (format === 'svg') {
+            // SVG格式需要从canvas重新生成
+            const text = inputText.value.trim();
+            const options = {
+                width: parseInt(size.value) || 250,
+                margin: parseInt(margin.value) || 1,
+                color: {
+                    dark: colorDark.value,
+                    light: colorLight.value
+                },
+                errorCorrectionLevel: errorLevel.value,
+                type: 'svg'
+            };
+            
+            // 显示加载状态
+            canvas.style.opacity = '0.5';
+            
+            // 生成SVG字符串
+            QRCode.toString(text, options, function(error, string) {
+                canvas.style.opacity = '1';
+                
+                if (error) {
+                    errorMessage.textContent = 'SVG生成失败：' + error.message;
+                    errorMessage.style.display = 'block';
+                    return;
+                }
+                
+                // 创建下载链接
+                const blob = new Blob([string], {type: 'image/svg+xml'});
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = filename + '.svg';
+                link.href = url;
+                link.click();
+                URL.revokeObjectURL(url);
+            });
+        }
+    }
+
+    // 清空
+    function clearAll() {
+        inputText.value = '';
+        // 清空canvas
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        currentQRDataURL = null;
+        textDisplay.style.display = 'none';
+        errorMessage.style.display = 'none';
+    }
+
+    // 加载示例
+    function loadExample(type) {
+        switch(type) {
+            case 'url':
+                inputText.value = 'https://github.com';
+                break;
+            case 'text':
+                inputText.value = 'Hello, 二维码!\n这是一个测试文本。\n🌟 支持中文和表情符号';
+                break;
+            case 'vcard':
+                inputText.value = `BEGIN:VCARD
+VERSION:3.0
+N:张三
+ORG:某某公司
+TITLE:技术总监
+TEL:138-1234-5678
+EMAIL:zhangsan@example.com
+URL:https://example.com
+ADR:中国北京市朝阳区
+NOTE:这是一个vCard示例
+END:VCARD`;
+                break;
+            case 'wifi':
+                inputText.value = 'WIFI:S:MyWiFiNetwork;T:WPA;P:password123;;';
+                break;
+            case 'email':
+                inputText.value = 'mailto:test@example.com?subject=二维码测试&body=这是一封通过二维码发送的邮件';
+                break;
+            case 'tel':
+                inputText.value = 'tel:+86-138-1234-5678';
+                break;
+        }
+        // 自动生成二维码（但不自动下载）
+        generateQRCode();
+    }
+
+    // 监听显示文本选项变化
+    showText.addEventListener('change', () => {
+        if (showText.checked && inputText.value.trim()) {
+            textDisplay.style.display = 'block';
+            textDisplay.textContent = inputText.value;
+        } else {
+            textDisplay.style.display = 'none';
+        }
+    });
+
+    // 监听输入变化，实时更新显示的文本
+    inputText.addEventListener('input', () => {
+        if (showText.checked && inputText.value.trim()) {
+            textDisplay.textContent = inputText.value;
+        }
+    });
+
+    // 暴露全局方法
+    window.generateQRCode = generateQRCode;
+    window.clearAll = clearAll;
+    window.downloadQRCode = downloadQRCode;
+    window.loadExample = loadExample;
+
+    // 页面加载后生成默认二维码（但不自动下载）
+    window.addEventListener('DOMContentLoaded', () => {
+        // 延迟一点点执行，确保DOM完全加载
+        setTimeout(() => {
+            generateQRCode();
+        }, 100);
+    });
+
+})();
+</script>
+
+<!-- 继承原框架风格，增加二维码生成功能 - 已修复自动下载问题 -->
+</body>
+</html>

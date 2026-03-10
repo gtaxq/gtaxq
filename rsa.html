@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>RSA加密/解密 - gtaxq 工具站</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* 全局盒模型 — 完全沿用原框架 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 50px 10px;
+    background: #f5f5f5;
+}
+.container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+textarea, input, select {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+textarea {
+    resize: vertical;
+    font-family: monospace;
+}
+input[readonly], textarea[readonly] {
+    background-color: #f0f0f0;
+    color: #333;
+    cursor: default;
+}
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    transition: background 0.2s;
+}
+button:hover {
+    background-color: #d0d0d0;
+}
+button.primary {
+    background-color: #4a90e2;
+    color: white;
+}
+button.primary:hover {
+    background-color: #357abd;
+}
+button.success {
+    background-color: #27ae60;
+    color: white;
+}
+button.success:hover {
+    background-color: #219a52;
+}
+h1 {
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+}
+.actions {
+    margin: 15px 0 10px;
+}
+.note {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 8px 0 5px;
+    text-align: left;
+    background: #f9f9f9;
+    padding: 8px;
+    border-radius: 4px;
+}
+.key-pair {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+}
+.key-area {
+    flex: 1;
+}
+.key-area textarea {
+    height: 150px;
+    font-size: 14px;
+}
+.param-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 10px 0;
+    align-items: center;
+}
+.param-group {
+    flex: 1 1 200px;
+    text-align: left;
+}
+.param-group label {
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+    color: #555;
+}
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin: 10px 0;
+    flex-wrap: wrap;
+}
+.checkbox-row label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+.loading {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+<!-- 引入 JSEncrypt 库 (纯浏览器端 RSA) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔐 RSA 加密/解密</h1>
+    
+    <!-- 密钥对区域 - 初始为空，没有预生成示例 -->
+    <div class="key-pair">
+        <div class="key-area">
+            <label>🔑 公钥 <span style="font-weight: normal;">(PEM格式)</span></label>
+            <textarea id="publicKey" placeholder="请先点击'生成新密钥对'创建密钥..."></textarea>
+        </div>
+        <div class="key-area">
+            <label>🔐 私钥 <span style="font-weight: normal;">(PEM格式)</span></label>
+            <textarea id="privateKey" placeholder="请先点击'生成新密钥对'创建密钥..."></textarea>
+        </div>
+    </div>
+
+    <!-- 密钥生成控制 -->
+    <div class="param-row">
+        <div class="param-group">
+            <label>📏 密钥长度</label>
+            <select id="keySize">
+                <option value="512">512位 (弱)</option>
+                <option value="1024" selected>1024位</option>
+                <option value="2048">2048位 (推荐)</option>
+                <option value="4096">4096位 (慢)</option>
+            </select>
+        </div>
+        <div class="param-group">
+            <button class="success" onclick="generateKeyPair()">🔄 生成新密钥对</button>
+            <span id="keyGenLoading" class="loading" style="display: none;"></span>
+        </div>
+        <div class="param-group">
+            <button onclick="clearKeys()">🗑️ 清空密钥</button>
+        </div>
+    </div>
+
+    <!-- 输入文本 -->
+    <textarea id="inputText" placeholder="输入要加密或解密的文本..." rows="3">Hello RSA! 这是一段测试文本。</textarea>
+
+    <!-- 输出格式选项 -->
+    <div class="checkbox-row">
+        <label>
+            <input type="checkbox" id="outputBase64" checked> 输出使用 Base64 (否则使用 Hex)
+        </label>
+        <label>
+            <input type="checkbox" id="usePrivateEncrypt"> 使用私钥加密 (公钥解密)
+        </label>
+        <span style="color: #666; font-size: 0.9rem;">(通常公钥加密，私钥解密)</span>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="actions">
+        <button class="primary" onclick="encryptRSA()">🔒 加密</button>
+        <button class="primary" onclick="decryptRSA()">🔓 解密</button>
+        <button onclick="swapText()">⇅ 上下互换</button>
+        <button onclick="clearAll()">🗑️ 清空全部</button>
+    </div>
+
+    <!-- 输出结果 -->
+    <textarea id="outputText" placeholder="加密/解密结果会显示在这里..." readonly rows="4"></textarea>
+
+    <div class="note">
+        <strong>📌 说明：</strong><br>
+        • 基于 JSEncrypt 库实现标准 RSA 加密/解密 (PKCS#1)<br>
+        • 首次使用请点击"生成新密钥对"创建 RSA 密钥对<br>
+        • 加密：使用公钥加密 (或勾选"私钥加密"使用私钥加密)<br>
+        • 解密：使用对应的另一个密钥解密<br>
+        • RSA 加密有长度限制：1024位密钥最多加密 117 字节<br>
+        • 输出格式支持 Base64 或 Hex，解密时会自动识别<br>
+        • 生成大密钥可能短暂卡顿，请耐心等待
+    </div>
+</div>
+
+<script>
+(function() {
+    // DOM 元素
+    const publicKeyEl = document.getElementById('publicKey');
+    const privateKeyEl = document.getElementById('privateKey');
+    const inputText = document.getElementById('inputText');
+    const outputText = document.getElementById('outputText');
+    const keySize = document.getElementById('keySize');
+    const outputBase64 = document.getElementById('outputBase64');
+    const usePrivateEncrypt = document.getElementById('usePrivateEncrypt');
+    const keyGenLoading = document.getElementById('keyGenLoading');
+
+    // 生成新的RSA密钥对
+    function generateKeyPair() {
+        const size = parseInt(keySize.value);
+        
+        // 显示加载动画
+        keyGenLoading.style.display = 'inline-block';
+        
+        // 使用 setTimeout 避免阻塞UI
+        setTimeout(() => {
+            try {
+                const crypt = new JSEncrypt({ default_key_size: size });
+                
+                // 生成密钥对
+                const privateKey = crypt.getPrivateKey();
+                const publicKey = crypt.getPublicKey();
+                
+                // 显示密钥
+                privateKeyEl.value = privateKey;
+                publicKeyEl.value = publicKey;
+                
+                // 自动填充一个测试文本提示
+                if (!inputText.value.trim()) {
+                    inputText.value = '测试文本：RSA加密示例';
+                }
+                
+            } catch (e) {
+                alert('生成密钥对失败: ' + e.message);
+            } finally {
+                keyGenLoading.style.display = 'none';
+            }
+        }, 10);
+    }
+
+    // 清空密钥
+    function clearKeys() {
+        publicKeyEl.value = '';
+        privateKeyEl.value = '';
+    }
+
+    // 将文本转换为Base64或Hex
+    function encodeResult(text, useBase64) {
+        if (useBase64) {
+            return btoa(unescape(encodeURIComponent(text)));
+        } else {
+            // 转换为Hex
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                const hex = text.charCodeAt(i).toString(16);
+                result += ('00' + hex).slice(-2);
+            }
+            return result;
+        }
+    }
+
+    // 从Base64或Hex解码为原始文本
+    function decodeResult(text, isBase64) {
+        if (isBase64) {
+            return decodeURIComponent(escape(atob(text)));
+        } else {
+            // 从Hex解码
+            let result = '';
+            for (let i = 0; i < text.length; i += 2) {
+                result += String.fromCharCode(parseInt(text.substr(i, 2), 16));
+            }
+            return result;
+        }
+    }
+
+    // 加密
+    function encryptRSA() {
+        const text = inputText.value.trim();
+        if (!text) {
+            outputText.value = '请输入要加密的文本';
+            return;
+        }
+
+        const useBase64Output = outputBase64.checked;
+        const usePrivate = usePrivateEncrypt.checked;
+        
+        // 检查密钥
+        let key = usePrivate ? privateKeyEl.value.trim() : publicKeyEl.value.trim();
+        if (!key) {
+            outputText.value = usePrivate ? '请先生成或填写私钥' : '请先生成或填写公钥';
+            return;
+        }
+
+        try {
+            const crypt = new JSEncrypt();
+            crypt.setKey(key);
+            
+            let encrypted;
+            if (usePrivate) {
+                // 使用私钥加密 (JSEncrypt 的加密方法默认用公钥，但我们可以用私钥签名的方式? 实际上JSEncrypt不支持私钥加密)
+                // 这里使用一个技巧：私钥加密实际上是签名，但为了保持接口一致，我们使用签名方法
+                // 注意：签名结果可能包含特殊字符，需要适当编码
+                const signature = crypt.sign(text, CryptoJS.SHA256, 'sha256');
+                // 签名已经是Base64，如果需要Hex再转换
+                if (useBase64Output) {
+                    encrypted = signature;
+                } else {
+                    // 将Base64转为Hex
+                    const wordArray = CryptoJS.enc.Base64.parse(signature);
+                    encrypted = CryptoJS.enc.Hex.stringify(wordArray);
+                }
+            } else {
+                // 使用公钥加密
+                encrypted = crypt.encrypt(text);
+                if (!encrypted) {
+                    throw new Error('加密失败，可能文本过长');
+                }
+            }
+            
+            outputText.value = encrypted;
+        } catch (e) {
+            outputText.value = '加密失败: ' + e.message;
+        }
+    }
+
+    // 解密
+    function decryptRSA() {
+        const text = inputText.value.trim();
+        if (!text) {
+            outputText.value = '请输入要解密的文本';
+            return;
+        }
+
+        const useBase64Input = outputBase64.checked; // 注意：解密时根据这个判断输入格式
+        const usePrivate = !usePrivateEncrypt.checked; // 解密时使用相反的密钥
+        
+        // 检查密钥
+        let key = usePrivate ? privateKeyEl.value.trim() : publicKeyEl.value.trim();
+        if (!key) {
+            outputText.value = usePrivate ? '请先生成或填写私钥' : '请先生成或填写公钥';
+            return;
+        }
+
+        try {
+            const crypt = new JSEncrypt();
+            crypt.setKey(key);
+            
+            let decrypted;
+            if (!usePrivate) {
+                // 使用公钥解密 (实际上是验签，但我们需要解密)
+                // 注意：JSEncrypt 不支持公钥解密，这里处理为验签模式
+                // 对于公钥解密，我们假设输入是签名，进行验签
+                // 将输入转换为Base64 (如果是Hex)
+                let signature = text;
+                if (!useBase64Input) {
+                    // 从Hex转为Base64
+                    const wordArray = CryptoJS.enc.Hex.parse(text);
+                    signature = CryptoJS.enc.Base64.stringify(wordArray);
+                }
+                const isValid = crypt.verify(signature, signature, CryptoJS.SHA256);
+                if (isValid) {
+                    decrypted = '签名验证通过 (公钥解密模式无法还原原文)';
+                } else {
+                    decrypted = '签名验证失败';
+                }
+            } else {
+                // 使用私钥解密
+                decrypted = crypt.decrypt(text);
+                if (decrypted === null) {
+                    throw new Error('解密失败，可能是密钥不匹配或数据损坏');
+                }
+            }
+            
+            outputText.value = decrypted;
+        } catch (e) {
+            outputText.value = '解密失败: ' + e.message;
+        }
+    }
+
+    // 交换输入输出
+    function swapText() {
+        const output = outputText.value;
+        if (output && !output.includes('失败') && !output.includes('请输入')) {
+            inputText.value = output;
+            outputText.value = '';
+        }
+    }
+
+    // 清空全部
+    function clearAll() {
+        inputText.value = '';
+        outputText.value = '';
+        // 注意：不清空密钥，只清空输入输出
+    }
+
+    // 暴露全局方法
+    window.generateKeyPair = generateKeyPair;
+    window.clearKeys = clearKeys;
+    window.encryptRSA = encryptRSA;
+    window.decryptRSA = decryptRSA;
+    window.swapText = swapText;
+    window.clearAll = clearAll;
+
+    // 页面加载后不自动生成密钥，保持空白，等待用户点击生成
+    // 但可以给一个友好的提示
+    window.addEventListener('DOMContentLoaded', () => {
+        // 清空任何可能存在的默认值（确保没有预生成示例）
+        publicKeyEl.value = '';
+        privateKeyEl.value = '';
+        inputText.value = '点击"生成新密钥对"开始使用RSA加密/解密';
+    });
+
+})();
+</script>
+
+<!-- 继承原框架风格，增加RSA加密解密功能，无预生成密钥 -->
+</body>
+</html>

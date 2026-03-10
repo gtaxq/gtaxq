@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>URL编码/解码 - gtaxq 工具站</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* 全局盒模型 — 完全沿用原框架 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 50px 10px;
+    background: #f5f5f5;
+}
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+textarea {
+    width: 100%;
+    max-width: 100%;
+    height: 120px;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    resize: vertical;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+/* 只读文本框灰色背景 */
+textarea[readonly] {
+    background-color: #f0f0f0;
+    color: #333;
+    cursor: default;
+}
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    transition: background 0.2s;
+}
+button:hover {
+    background-color: #d0d0d0;
+}
+h1 {
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+}
+.actions {
+    margin: 15px 0 10px;
+}
+.note {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 8px 0 5px;
+    text-align: left;
+}
+.radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 10px 0;
+    justify-content: center;
+}
+.radio-group label {
+    background: #f2f2f2;
+    padding: 6px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+.radio-group input[type="radio"] {
+    margin-right: 4px;
+    cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔗 URL 编码 / 解码</h1>
+    
+    <!-- 输入区 -->
+    <textarea id="input" placeholder="输入需要编码/解码的字符串...">hello world! 你好 @+</textarea>
+
+    <!-- 模式选择: 编码 or 解码，以及空格处理方式 -->
+    <div class="radio-group">
+        <label><input type="radio" name="mode" value="encode" checked> 编码 (encodeURIComponent)</label>
+        <label><input type="radio" name="mode" value="decode"> 解码 (decodeURIComponent)</label>
+        <label><input type="radio" name="mode" value="encodepath"> 编码 (路径风格 · 空格转%20)</label>
+    </div>
+
+    <!-- 按钮组 -->
+    <div class="actions">
+        <button onclick="processURL()">⚡ 执行</button>
+        <button onclick="swapInputOutput()">⇅ 上下互换</button>
+        <button onclick="clearAll()">🗑️ 清空</button>
+    </div>
+
+    <!-- 输出区 (只读) -->
+    <textarea id="output" placeholder="结果..." readonly></textarea>
+
+    <div class="note">
+        * 编码模式默认使用 <strong>encodeURIComponent</strong>，可安全用于 query 参数。<br>
+        * “路径风格”编码将空格转为 %20 (而非 +)，且不编码 / ? & 等字符 (使用 encodeURI)。<br>
+        * 解码模式自动兼容两种空格编码（%20 或 +）以及完整URI解码。
+    </div>
+</div>
+
+<script>
+(function() {
+    // DOM 元素
+    const inputEl = document.getElementById('input');
+    const outputEl = document.getElementById('output');
+    const modeRadios = document.getElementsByName('mode');
+
+    // 核心处理函数
+    function processURL() {
+        let inputText = inputEl.value;
+        if (inputText === '') {
+            outputEl.value = '(请输入内容)';
+            return;
+        }
+
+        // 获取选中的模式
+        let mode = 'encode';
+        for (let radio of modeRadios) {
+            if (radio.checked) {
+                mode = radio.value;
+                break;
+            }
+        }
+
+        try {
+            let result = '';
+            switch (mode) {
+                case 'encode':
+                    // 标准的 encodeURIComponent: 编码所有特殊字符，空格转 %20
+                    result = encodeURIComponent(inputText);
+                    break;
+                case 'decode':
+                    // 解码: 先尝试替换 + 为 %20 (因为历史表单可能把空格编码为 +)
+                    // 但 decodeURIComponent 不能直接处理 +, 所以需要预处理
+                    // 不过注意：+ 仅在 application/x-www-form-urlencoded 中代表空格，但url标准中空格是 %20。
+                    // 我们做个兼容: 先把 + 转成 %20 再解码，这样更友好。
+                    let processed = inputText.replace(/\+/g, '%20');
+                    result = decodeURIComponent(processed);
+                    break;
+                case 'encodepath':
+                    // 路径风格: 使用 encodeURI，但额外把空格转成 %20 (因为 encodeURI 不编码空格)
+                    // encodeURI 保留 / ? & # 等字符，适合对路径部分编码。
+                    result = encodeURI(inputText).replace(/%20/g, '%20'); // 其实空格被encodeURI保留为空格，我们需要手动转换
+                    // 正确做法: encodeURI 不处理空格，需要额外替换空格为 %20
+                    result = encodeURI(inputText).replace(/ /g, '%20');
+                    break;
+                default:
+                    result = '未知模式';
+            }
+            outputEl.value = result;
+        } catch (e) {
+            outputEl.value = '处理失败：' + e.message;
+        }
+    }
+
+    // 互换输入输出: 将输出内容放到输入框，并清空输出 (同时保留原输出可再次编辑)
+    function swapInputOutput() {
+        const outputText = outputEl.value;
+        // 只有当输出有内容时才互换 (如果输出为空或提示信息，也允许互换)
+        if (outputText !== '') {
+            inputEl.value = outputText;
+            outputEl.value = '';
+        } else {
+            // 如果输出为空，则什么也不做，或者可提示
+            // 轻提示方式：临时显示一下然后消失？但避免复杂，忽略
+        }
+        // 可选：焦点移至输入
+        inputEl.focus();
+    }
+
+    // 清空输入和输出 (完全遵循原框架 clearText 行为)
+    function clearAll() {
+        inputEl.value = '';
+        outputEl.value = '';
+    }
+
+    // 暴露全局方法 (与原框架一致)
+    window.processURL = processURL;
+    window.swapInputOutput = swapInputOutput;
+    window.clearAll = clearAll;
+
+    // 初始化显示：让初始示例执行一次编码，输出对应结果
+    window.addEventListener('DOMContentLoaded', () => {
+        // 确保默认选中 "encode"
+        for (let radio of modeRadios) {
+            if (radio.value === 'encode') radio.checked = true;
+        }
+        // 执行一次，使输出有示例结果
+        processURL();
+    });
+})();
+</script>
+
+<!-- 附加说明：完全继承原框架布局与交互 -->
+</body>
+</html>

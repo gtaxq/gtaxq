@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>JWT解码 - gtaxq 工具站</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* 全局盒模型 — 完全沿用原框架 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 50px 10px;
+    background: #f5f5f5;
+}
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+textarea {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    resize: vertical;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+#input {
+    height: 100px;
+    font-family: monospace;
+}
+#output {
+    height: 250px;
+    background-color: #f0f0f0;
+    color: #333;
+    cursor: default;
+    font-family: monospace;
+    white-space: pre;
+    overflow: auto;
+}
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    transition: background 0.2s;
+}
+button:hover {
+    background-color: #d0d0d0;
+}
+h1 {
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+}
+.actions {
+    margin: 15px 0 10px;
+}
+.note {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 8px 0 5px;
+    text-align: left;
+    background: #f9f9f9;
+    padding: 8px;
+    border-radius: 4px;
+}
+.example-link {
+    color: #0066cc;
+    text-decoration: none;
+    cursor: pointer;
+}
+.example-link:hover {
+    text-decoration: underline;
+}
+.token-section {
+    text-align: left;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔐 JWT 解码器</h1>
+    
+    <!-- 输入区 -->
+    <textarea id="input" placeholder="输入 JWT Token (例如: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c</textarea>
+
+    <!-- 按钮组 -->
+    <div class="actions">
+        <button onclick="decodeJWT()">🔓 解码</button>
+        <button onclick="clearAll()">🗑️ 清空</button>
+        <button onclick="loadExample()">📋 加载示例</button>
+    </div>
+
+    <!-- 输出区 (只读) 用于显示解码后的JSON -->
+    <textarea id="output" placeholder="解码后的数据会显示在这里..." readonly></textarea>
+
+    <div class="note">
+        <strong>📌 说明：</strong><br>
+        • JWT由三部分组成：Header(头部).Payload(载荷).Signature(签名)<br>
+        • 解码后以JSON格式显示Header和Payload，签名以Base64原始形式显示<br>
+        • 本工具仅解码，<strong>不验证签名</strong>，请勿用于敏感数据验证<br>
+        • 点击 <span class="example-link" onclick="loadExample()">📋 加载示例</span> 可填充演示Token
+    </div>
+</div>
+
+<script>
+(function() {
+    // DOM 元素
+    const inputEl = document.getElementById('input');
+    const outputEl = document.getElementById('output');
+
+    // Base64 URL 解码 (JWT 使用 base64url 格式，需要转换)
+    function base64UrlDecode(base64Url) {
+        // 将 base64url 转为标准 base64
+        let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        // 添加填充
+        while (base64.length % 4) {
+            base64 += '=';
+        }
+        try {
+            // 使用 atob 解码 (浏览器内置)
+            return decodeURIComponent(escape(atob(base64)));
+        } catch (e) {
+            throw new Error('Base64 解码失败：可能包含非UTF8字符');
+        }
+    }
+
+    // 安全的JSON格式化
+    function formatJSON(jsonStr) {
+        try {
+            const obj = JSON.parse(jsonStr);
+            return JSON.stringify(obj, null, 2);
+        } catch (e) {
+            // 如果不是有效JSON，原样返回但尝试美化
+            return jsonStr;
+        }
+    }
+
+    // 核心解码函数
+    function decodeJWT() {
+        const token = inputEl.value.trim();
+        
+        if (!token) {
+            outputEl.value = '请输入 JWT Token';
+            return;
+        }
+
+        // 清理输出
+        outputEl.value = '';
+
+        // 分割JWT的三个部分
+        const parts = token.split('.');
+        if (parts.length !== 3) {
+            outputEl.value = '❌ 无效的JWT格式：JWT应由三部分组成 (Header.Payload.Signature)';
+            return;
+        }
+
+        const [headerB64, payloadB64, signatureB64] = parts;
+
+        try {
+            // 解码头部
+            const headerStr = base64UrlDecode(headerB64);
+            const headerFormatted = formatJSON(headerStr);
+            
+            // 解码载荷
+            const payloadStr = base64UrlDecode(payloadB64);
+            const payloadFormatted = formatJSON(payloadStr);
+            
+            // 签名部分只做base64url解码为base64显示 (签名是二进制，展示原始base64格式)
+            // 这里保留签名原始base64url格式即可，无需解码为明文
+            // 但可以展示一个简短标识
+            const signatureDisplay = signatureB64;  // 显示原始签名部分
+
+            // 构建输出内容
+            const outputLines = [
+                '📋 JWT 解码结果',
+                '=' . repeat(50),
+                '',
+                '🔷【Header 头部】',
+                headerFormatted,
+                '',
+                '🔶【Payload 载荷】',
+                payloadFormatted,
+                '',
+                '🔸【Signature 签名】',
+                signatureDisplay + '  (Base64Url编码，不验证)',
+                '',
+                '=' . repeat(50),
+                '⚠️ 注意：本工具仅解码，不验证签名有效性'
+            ];
+
+            outputEl.value = outputLines.join('\n');
+        } catch (error) {
+            outputEl.value = `❌ 解码失败：${error.message}\n\n请确保输入的是有效的JWT格式。`;
+        }
+    }
+
+    // 辅助函数：重复字符串
+    function repeat(str, count) {
+        return new Array(count + 1).join(str);
+    }
+
+    // 清空输入输出
+    function clearAll() {
+        inputEl.value = '';
+        outputEl.value = '';
+    }
+
+    // 加载示例JWT (来自 jwt.io 的官方示例)
+    function loadExample() {
+        inputEl.value = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+        // 自动触发解码，方便用户
+        decodeJWT();
+    }
+
+    // 暴露全局方法 (与原框架一致)
+    window.decodeJWT = decodeJWT;
+    window.clearAll = clearAll;
+    window.loadExample = loadExample;
+
+    // 页面加载后自动解码示例，让用户看到效果
+    window.addEventListener('DOMContentLoaded', () => {
+        // 确保输入框有示例 (如果被清空过，但DOM内容有value)
+        // 但以防html中的value被修改，我们调用loadExample会设置并解码
+        // 但loadExample会覆盖用户可能的修改？初始时没有用户输入，可以执行
+        // 延迟一点点执行，确保DOM完全解析
+        setTimeout(() => {
+            // 如果输入框目前内容为空或者只是空白，加载示例
+            if (!inputEl.value.trim()) {
+                loadExample();
+            } else {
+                // 已有默认内容，则执行解码显示结果
+                decodeJWT();
+            }
+        }, 10);
+    });
+})();
+</script>
+
+<!-- 继承原框架风格，增加JWT专用功能 -->
+</body>
+</html>

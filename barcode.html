@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>条形码生成 - gtaxq 工具站</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* 全局盒模型 — 完全沿用原框架 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 50px 10px;
+    background: #f5f5f5;
+}
+.container {
+    max-width: 650px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+textarea, input, select {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+textarea {
+    resize: vertical;
+    height: 80px;
+    font-family: monospace;
+}
+input[readonly] {
+    background-color: #f0f0f0;
+    color: #333;
+    cursor: default;
+}
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    transition: background 0.2s;
+}
+button:hover {
+    background-color: #d0d0d0;
+}
+button.primary {
+    background-color: #4a90e2;
+    color: white;
+}
+button.primary:hover {
+    background-color: #357abd;
+}
+button.success {
+    background-color: #27ae60;
+    color: white;
+}
+button.success:hover {
+    background-color: #219a52;
+}
+h1 {
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+}
+.actions {
+    margin: 15px 0 10px;
+}
+.note {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 8px 0 5px;
+    text-align: left;
+    background: #f9f9f9;
+    padding: 8px;
+    border-radius: 4px;
+}
+.param-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 10px 0;
+    justify-content: center;
+    align-items: center;
+    background: #f8f8f8;
+    padding: 10px;
+    border-radius: 8px;
+}
+.param-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.param-group label {
+    font-size: 14px;
+    white-space: nowrap;
+}
+.param-group input[type="number"], 
+.param-group select {
+    width: 100px;
+    padding: 5px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.param-group input[type="color"] {
+    width: 50px;
+    height: 35px;
+    padding: 2px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+}
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    cursor: pointer;
+}
+.barcode-container {
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+.barcode-container svg {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    background: #fff;
+}
+.barcode-container canvas {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+.barcode-text {
+    margin-top: 15px;
+    font-family: monospace;
+    font-size: 16px;
+    color: #333;
+    padding: 8px 15px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    word-break: break-all;
+}
+.download-buttons {
+    margin: 15px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+.example-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin: 10px 0;
+}
+.example-buttons button {
+    padding: 5px 10px;
+    font-size: 14px;
+    background-color: #f2f2f2;
+}
+.error-message {
+    color: #e74c3c;
+    font-size: 14px;
+    text-align: left;
+    margin-top: 5px;
+    padding: 10px;
+    background: #fdeaea;
+    border-radius: 4px;
+    display: none;
+    border-left: 4px solid #e74c3c;
+}
+.format-info {
+    font-size: 13px;
+    color: #666;
+    margin: 5px 0 10px;
+    text-align: left;
+    padding: 8px;
+    background: #f8f8f8;
+    border-radius: 4px;
+    border-left: 4px solid #4a90e2;
+}
+</style>
+<!-- 引入条形码生成库 -->
+<script src="/js/JsBarcode.all.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>📊 条形码生成器</h1>
+    
+    <!-- 输入内容 -->
+    <input type="text" id="inputText" placeholder="输入要生成条形码的数字或文本" value="1234567890">
+
+    <!-- 条形码参数设置 -->
+    <div class="param-row">
+        <div class="param-group">
+            <label>格式:</label>
+            <select id="format">
+                <option value="CODE128" selected>CODE128 (支持数字/字母)</option>
+                <option value="CODE128A">CODE128A (大写字母/控制符)</option>
+                <option value="CODE128B">CODE128B (大写/小写字母)</option>
+                <option value="CODE128C">CODE128C (数字)</option>
+                <option value="EAN13">EAN13 (13位数字)</option>
+                <option value="EAN8">EAN8 (8位数字)</option>
+                <option value="UPC">UPC (12位数字)</option>
+                <option value="CODE39">CODE39 (数字/大写字母)</option>
+                <option value="ITF14">ITF14 (14位数字)</option>
+                <option value="MSI">MSI (数字)</option>
+                <option value="pharmacode">Pharmacode</option>
+                <option value="codabar">Codabar</option>
+            </select>
+        </div>
+        <div class="param-group">
+            <label>模块宽度(px):</label>
+            <input type="number" id="moduleWidth" min="1" max="10" value="2" step="0.5">
+        </div>
+        <div class="param-group">
+            <label>高度(px):</label>
+            <input type="number" id="height" min="20" max="300" value="80" step="5">
+        </div>
+    </div>
+
+    <!-- 第二行参数 -->
+    <div class="param-row">
+        <div class="param-group">
+            <label>线条颜色:</label>
+            <input type="color" id="lineColor" value="#000000">
+        </div>
+        <div class="param-group">
+            <label>背景色:</label>
+            <input type="color" id="backgroundColor" value="#ffffff">
+        </div>
+        <div class="param-group">
+            <label>边距(px):</label>
+            <input type="number" id="margin" min="0" max="50" value="10">
+        </div>
+    </div>
+
+    <!-- 文字显示选项 -->
+    <div class="param-row">
+        <div class="checkbox-group">
+            <label>
+                <input type="checkbox" id="showText" checked> 显示下方文字
+            </label>
+            <label>
+                <input type="checkbox" id="flatFormat"> 平面格式 (无边框)
+            </label>
+        </div>
+        <div class="param-group">
+            <label>字体大小(px):</label>
+            <input type="number" id="fontSize" min="8" max="30" value="16">
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="actions">
+        <button class="primary" onclick="generateBarcode()">✨ 生成条形码</button>
+        <button onclick="clearAll()">🗑️ 清空</button>
+        <button onclick="downloadBarcode('png')">📥 下载 PNG</button>
+        <button onclick="downloadBarcode('svg')">📥 下载 SVG</button>
+    </div>
+
+    <!-- 快捷示例按钮 -->
+    <div class="example-buttons">
+        <button onclick="loadExample('ean13')">📦 EAN13 (商品码)</button>
+        <button onclick="loadExample('code128')">🔤 CODE128 (文本)</button>
+        <button onclick="loadExample('isbn')">📚 ISBN (图书)</button>
+        <button onclick="loadExample('upc')">🇺🇸 UPC (美国)</button>
+        <button onclick="loadExample('code39')">🔢 CODE39</button>
+        <button onclick="loadExample('itf14')">📦 ITF14 (物流)</button>
+    </div>
+
+    <!-- 格式说明 -->
+    <div id="formatInfo" class="format-info"></div>
+
+    <!-- 错误信息显示 -->
+    <div id="errorMessage" class="error-message"></div>
+
+    <!-- 条形码显示区域 -->
+    <div id="barcodeContainer" class="barcode-container">
+        <svg id="barcodeSvg"></svg>
+    </div>
+    
+    <!-- 条形码文字显示 -->
+    <div id="barcodeText" class="barcode-text"></div>
+
+    <div class="note">
+        <strong>📌 说明：</strong><br>
+        • 输入数字或文本，选择格式后点击生成条形码<br>
+        • 模块宽度：每个条的最小宽度（像素），数值越大条形码越宽<br>
+        • 高度：条形码的高度（像素），建议50-150之间<br>
+        • 不同格式对字符有不同要求：EAN13需要13位数字，CODE128支持任意字符<br>
+        • 支持自定义颜色、边距、字体大小等参数<br>
+        • 可下载 PNG 或 SVG 格式的条形码图片
+    </div>
+</div>
+
+<script>
+(function() {
+    // DOM 元素
+    const inputText = document.getElementById('inputText');
+    const barcodeSvg = document.getElementById('barcodeSvg');
+    const barcodeContainer = document.getElementById('barcodeContainer');
+    const barcodeText = document.getElementById('barcodeText');
+    const errorMessage = document.getElementById('errorMessage');
+    const formatInfo = document.getElementById('formatInfo');
+    
+    const format = document.getElementById('format');
+    const moduleWidth = document.getElementById('moduleWidth');
+    const height = document.getElementById('height');
+    const lineColor = document.getElementById('lineColor');
+    const backgroundColor = document.getElementById('backgroundColor');
+    const margin = document.getElementById('margin');
+    const showText = document.getElementById('showText');
+    const flatFormat = document.getElementById('flatFormat');
+    const fontSize = document.getElementById('fontSize');
+
+    // 当前生成的条形码数据URL
+    let currentBarcodeDataURL = null;
+
+    // 格式说明映射
+    const formatDescriptions = {
+        'CODE128': '支持所有ASCII字符（数字、字母、符号），最常用的格式',
+        'CODE128A': '支持大写字母、数字和控制字符',
+        'CODE128B': '支持大小写字母、数字和符号',
+        'CODE128C': '仅支持数字，密度最高（双倍密度）',
+        'EAN13': '13位数字，国际商品通用标准，最后一位为校验码',
+        'EAN8': '8位数字，用于小包装商品',
+        'UPC': '12位数字，美国和加拿大商品标准',
+        'CODE39': '支持数字和大写字母，长度可变',
+        'ITF14': '14位数字，物流和仓储行业标准',
+        'MSI': '数字，用于库存管理',
+        'pharmacode': '制药行业专用，支持3-131070的数字',
+        'codabar': '用于图书馆、血库等，支持数字和-$:/.+'
+    };
+
+    // 更新格式说明
+    function updateFormatInfo() {
+        const fmt = format.value;
+        formatInfo.textContent = formatDescriptions[fmt] || '选择格式查看说明';
+    }
+
+    // 验证输入是否符合格式要求
+    function validateInput(value, fmt) {
+        if (!value) return '请输入内容';
+        
+        // 移除空格
+        const cleanValue = value.replace(/\s/g, '');
+        
+        switch(fmt) {
+            case 'EAN13':
+                if (!/^\d{12}$|^\d{13}$/.test(cleanValue)) {
+                    return 'EAN13需要12或13位数字';
+                }
+                break;
+            case 'EAN8':
+                if (!/^\d{7}$|^\d{8}$/.test(cleanValue)) {
+                    return 'EAN8需要7或8位数字';
+                }
+                break;
+            case 'UPC':
+                if (!/^\d{11}$|^\d{12}$/.test(cleanValue)) {
+                    return 'UPC需要11或12位数字';
+                }
+                break;
+            case 'ITF14':
+                if (!/^\d{13}$|^\d{14}$/.test(cleanValue)) {
+                    return 'ITF14需要13或14位数字';
+                }
+                break;
+            case 'CODE128C':
+                if (!/^\d+$/.test(cleanValue)) {
+                    return 'CODE128C只能包含数字';
+                }
+                break;
+            case 'CODE39':
+                if (!/^[A-Z0-9\-\$\%\+\/\.\ ]+$/.test(value.toUpperCase())) {
+                    return 'CODE39只能包含大写字母、数字和 -$%+/. 空格';
+                }
+                break;
+        }
+        return null;
+    }
+
+    // 生成条形码
+    function generateBarcode() {
+        const text = inputText.value.trim();
+        
+        // 隐藏错误信息
+        errorMessage.style.display = 'none';
+        
+        if (!text) {
+            errorMessage.textContent = '请输入要生成条形码的内容';
+            errorMessage.style.display = 'block';
+            return;
+        }
+
+        const fmt = format.value;
+        
+        // 验证输入
+        const validationError = validateInput(text, fmt);
+        if (validationError) {
+            errorMessage.textContent = validationError;
+            errorMessage.style.display = 'block';
+            return;
+        }
+
+        // 清空 SVG
+        barcodeSvg.innerHTML = '';
+
+        // 条形码配置
+        const options = {
+            format: fmt,
+            width: parseFloat(moduleWidth.value) || 2,  // 模块宽度（每个条的宽度）
+            height: parseInt(height.value) || 80,       // 高度（像素）
+            displayValue: showText.checked,
+            fontSize: parseInt(fontSize.value) || 16,
+            font: 'monospace',
+            textAlign: 'center',
+            textPosition: 'bottom',
+            textMargin: 5,
+            lineColor: lineColor.value,
+            background: backgroundColor.value,
+            margin: parseInt(margin.value) || 10,
+            flat: flatFormat.checked
+        };
+
+        try {
+            // 生成条形码
+            JsBarcode(barcodeSvg, text, options);
+            
+            // 设置 SVG 的 viewBox 以确保正确显示
+            const svgElement = barcodeSvg;
+            const bbox = svgElement.getBBox();
+            svgElement.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+            svgElement.setAttribute('width', '100%');
+            svgElement.setAttribute('height', 'auto');
+            
+            // 获取 SVG 字符串用于下载
+            const svgString = new XMLSerializer().serializeToString(svgElement);
+            const svgBlob = new Blob([svgString], {type: 'image/svg+xml'});
+            
+            // 清理之前的 URL
+            if (currentBarcodeDataURL) {
+                URL.revokeObjectURL(currentBarcodeDataURL);
+            }
+            currentBarcodeDataURL = URL.createObjectURL(svgBlob);
+            
+            // 显示文字
+            if (showText.checked) {
+                barcodeText.textContent = text;
+                barcodeText.style.display = 'block';
+            } else {
+                barcodeText.style.display = 'none';
+            }
+            
+        } catch (e) {
+            errorMessage.textContent = '生成失败：' + e.message;
+            errorMessage.style.display = 'block';
+            console.error(e);
+        }
+    }
+
+    // 下载条形码
+    function downloadBarcode(format) {
+        if (!currentBarcodeDataURL) {
+            errorMessage.textContent = '请先生成条形码';
+            errorMessage.style.display = 'block';
+            return;
+        }
+        
+        const text = inputText.value.trim() || 'barcode';
+        // 生成文件名（取前20个字符作为文件名）
+        let filename = text.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+        if (!filename) filename = 'barcode';
+        
+        if (format === 'png') {
+            // 将 SVG 转换为 PNG 下载
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            // 获取 SVG 尺寸
+            const svgElement = barcodeSvg;
+            const bbox = svgElement.getBBox();
+            const width = Math.max(bbox.width + 20, 200);
+            const height = Math.max(bbox.height + 20, 100);
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            img.onload = () => {
+                // 清空 canvas
+                ctx.fillStyle = backgroundColor.value;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // 计算居中位置
+                const x = (canvas.width - bbox.width) / 2;
+                const y = (canvas.height - bbox.height) / 2;
+                
+                ctx.drawImage(img, x, y, bbox.width, bbox.height);
+                
+                // 下载 PNG
+                const link = document.createElement('a');
+                link.download = filename + '.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            };
+            
+            img.src = currentBarcodeDataURL;
+        } else if (format === 'svg') {
+            // 直接下载 SVG
+            const link = document.createElement('a');
+            link.download = filename + '.svg';
+            link.href = currentBarcodeDataURL;
+            link.click();
+        }
+    }
+
+    // 清空
+    function clearAll() {
+        inputText.value = '';
+        barcodeSvg.innerHTML = '';
+        barcodeText.textContent = '';
+        barcodeText.style.display = 'none';
+        errorMessage.style.display = 'none';
+        if (currentBarcodeDataURL) {
+            URL.revokeObjectURL(currentBarcodeDataURL);
+            currentBarcodeDataURL = null;
+        }
+    }
+
+    // 加载示例
+    function loadExample(type) {
+        switch(type) {
+            case 'ean13':
+                inputText.value = '690123456789';
+                format.value = 'EAN13';
+                break;
+            case 'code128':
+                inputText.value = 'ABC-12345';
+                format.value = 'CODE128';
+                break;
+            case 'isbn':
+                inputText.value = '978123456789';
+                format.value = 'EAN13';
+                break;
+            case 'upc':
+                inputText.value = '123456789012';
+                format.value = 'UPC';
+                break;
+            case 'code39':
+                inputText.value = 'CODE39';
+                format.value = 'CODE39';
+                break;
+            case 'itf14':
+                inputText.value = '12345678901234';
+                format.value = 'ITF14';
+                break;
+        }
+        updateFormatInfo();
+        generateBarcode();
+    }
+
+    // 监听格式变化
+    format.addEventListener('change', updateFormatInfo);
+
+    // 暴露全局方法
+    window.generateBarcode = generateBarcode;
+    window.clearAll = clearAll;
+    window.downloadBarcode = downloadBarcode;
+    window.loadExample = loadExample;
+
+    // 页面加载后生成默认条形码
+    window.addEventListener('DOMContentLoaded', () => {
+        updateFormatInfo();
+        // 设置默认高度
+        height.value = '80';
+        moduleWidth.value = '2';
+        generateBarcode();
+    });
+
+})();
+</script>
+
+<!-- 继承原框架风格，增加条形码生成功能 - 已修复高度问题 -->
+</body>
+</html>

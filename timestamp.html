@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>时间戳转换 - gtaxq 工具站</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* 全局盒模型 — 完全沿用原框架 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 50px 10px;
+    background: #f5f5f5;
+}
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+textarea, input {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+input[readonly], textarea[readonly] {
+    background-color: #f0f0f0;
+    color: #333;
+    cursor: default;
+}
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    transition: background 0.2s;
+}
+button:hover {
+    background-color: #d0d0d0;
+}
+h1 {
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+}
+.actions {
+    margin: 15px 0 10px;
+}
+.note {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 8px 0 5px;
+    text-align: left;
+    background: #f9f9f9;
+    padding: 8px;
+    border-radius: 4px;
+}
+.radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 10px 0;
+    justify-content: center;
+}
+.radio-group label {
+    background: #f2f2f2;
+    padding: 6px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+.radio-group input[type="radio"] {
+    margin-right: 4px;
+    cursor: pointer;
+}
+.current-time {
+    background: #e8f4f8;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+    font-size: 0.95rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.timestamp-display {
+    font-family: monospace;
+    background: #fff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⏰ 时间戳转换</h1>
+    
+    <!-- 当前时间显示 -->
+    <div class="current-time">
+        <span>📅 当前时间:</span>
+        <span class="timestamp-display" id="currentTimeDisplay">加载中...</span>
+        <button onclick="refreshCurrentTime()" style="padding: 5px 10px; margin: 0;">🔄 刷新</button>
+    </div>
+
+    <!-- 输入区：时间戳或日期时间 -->
+    <input type="text" id="input" placeholder="输入时间戳(秒/毫秒) 或 日期时间 (如: 2023-12-25 14:30:00)" value="1703485800">
+
+    <!-- 转换模式选择 -->
+    <div class="radio-group">
+        <label><input type="radio" name="mode" value="ts2date" checked> 时间戳 → 日期</label>
+        <label><input type="radio" name="mode" value="date2ts"> 日期 → 时间戳</label>
+        <label><input type="radio" name="mode" value="auto"> 🔍 自动识别</label>
+    </div>
+
+    <!-- 按钮组 -->
+    <div class="actions">
+        <button onclick="convertTimestamp()">🔄 转换</button>
+        <button onclick="swapResult()">⇅ 结果填入输入</button>
+        <button onclick="clearAll()">🗑️ 清空</button>
+        <button onclick="setNow()">📌 使用当前时间</button>
+    </div>
+
+    <!-- 输出区：结果显示 -->
+    <textarea id="output" placeholder="转换结果会显示在这里..." readonly rows="4"></textarea>
+
+    <div class="note">
+        <strong>📌 说明：</strong><br>
+        • 支持 Unix 时间戳（秒 或 毫秒）与日期时间互转<br>
+        • 日期格式示例: 2023-12-25 14:30:00 或 2023/12/25 14:30:00<br>
+        • 自动识别模式会判断输入是时间戳还是日期文本<br>
+        • 秒级时间戳为10位，毫秒级为13位，本工具自动适配<br>
+        • 使用 <strong>📌 当前时间</strong> 按钮可快速填充当前时间戳/时间
+    </div>
+</div>
+
+<script>
+(function() {
+    // DOM 元素
+    const inputEl = document.getElementById('input');
+    const outputEl = document.getElementById('output');
+    const modeRadios = document.getElementsByName('mode');
+    const currentTimeSpan = document.getElementById('currentTimeDisplay');
+
+    // 格式化日期时间为本地字符串 YYYY-MM-DD HH:mm:ss
+    function formatDateTime(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        const ms = String(date.getMilliseconds()).padStart(3, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${ms}`;
+    }
+
+    // 格式化日期时间到秒（不含毫秒）
+    function formatDateTimeSeconds(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    // 解析日期时间字符串为 Date 对象
+    function parseDateTime(str) {
+        if (!str) return null;
+        
+        // 移除首尾空格
+        str = str.trim();
+        
+        // 尝试替换常见分隔符
+        // 支持格式: 
+        // 2023-12-25 14:30:00
+        // 2023/12/25 14:30:00
+        // 2023.12.25 14:30:00
+        // 2023-12-25T14:30:00
+        // 2023-12-25 14:30
+        // 2023-12-25
+        
+        // 将 T 替换为空格
+        str = str.replace('T', ' ');
+        
+        // 分割日期和时间
+        let parts = str.split(' ');
+        let datePart = parts[0];
+        let timePart = parts[1] || '00:00:00';
+        
+        // 处理日期分隔符
+        let dateSeparator = datePart.includes('-') ? '-' : (datePart.includes('/') ? '/' : (datePart.includes('.') ? '.' : null));
+        if (!dateSeparator) return null;
+        
+        let dateParts = datePart.split(dateSeparator).map(Number);
+        if (dateParts.length !== 3) return null;
+        
+        let year = dateParts[0];
+        let month = dateParts[1] - 1; // 月份从0开始
+        let day = dateParts[2];
+        
+        // 处理时间部分
+        let timeParts = timePart.split(':').map(Number);
+        let hour = timeParts[0] || 0;
+        let minute = timeParts[1] || 0;
+        let second = timeParts[2] || 0;
+        
+        // 验证有效性
+        if (year < 1970 || year > 3000) return null;
+        
+        return new Date(year, month, day, hour, minute, second);
+    }
+
+    // 判断输入是否为时间戳
+    function isTimestamp(str) {
+        if (!str) return false;
+        // 去除首尾空格
+        const trimmed = str.trim();
+        // 时间戳应该是纯数字，可能包含负号（1970以前）或小数点（理论上不常见，但保留）
+        // 这里简单判断：去掉负号和小数点后是否全数字
+        const numStr = trimmed.replace(/^-/, '').replace(/\./, '');
+        if (!/^\d+$/.test(numStr)) return false;
+        
+        const num = Number(trimmed);
+        if (isNaN(num)) return false;
+        
+        // 时间戳范围：从 1970-01-01 到 3000-01-01 之间的秒/毫秒数
+        // 秒级时间戳范围大约 0 ~ 32503680000 (3000年)
+        // 毫秒级范围 0 ~ 32503680000000
+        // 我们放宽到 13 位以内
+        if (num < 0) return true; // 允许负数（1970年以前）
+        if (num > 100000000000000) return false; // 太大肯定不是
+        
+        // 常见的10位(秒)或13位(毫秒)或19位(纳秒不常见)
+        const len = Math.floor(num).toString().length;
+        return len === 10 || len === 13 || len === 8 || len === 9; // 8/9位可能是秒级(2033年前后)
+    }
+
+    // 将时间戳转为日期 (自动识别秒/毫秒)
+    function timestampToDate(ts) {
+        const num = Number(ts);
+        // 判断是秒还是毫秒
+        if (num > 10000000000) { // 大于 100亿 通常为毫秒级 (13位)
+            return new Date(num);
+        } else {
+            return new Date(num * 1000);
+        }
+    }
+
+    // 核心转换函数
+    function convertTimestamp() {
+        let inputText = inputEl.value.trim();
+        
+        if (!inputText) {
+            outputEl.value = '请输入时间戳或日期时间';
+            return;
+        }
+
+        // 获取选中的模式
+        let mode = 'ts2date';
+        for (let radio of modeRadios) {
+            if (radio.checked) {
+                mode = radio.value;
+                break;
+            }
+        }
+
+        try {
+            let result = '';
+            
+            if (mode === 'auto') {
+                // 自动识别：判断是时间戳还是日期
+                if (isTimestamp(inputText)) {
+                    // 当作时间戳处理
+                    const date = timestampToDate(inputText);
+                    result = `📅 日期时间: ${formatDateTime(date)}\n`;
+                    result += `🔢 秒级时间戳: ${Math.floor(date.getTime() / 1000)}\n`;
+                    result += `🔢 毫秒级时间戳: ${date.getTime()}`;
+                } else {
+                    // 尝试解析为日期
+                    const date = parseDateTime(inputText);
+                    if (!date || isNaN(date.getTime())) {
+                        result = '❌ 无法识别的日期格式或时间戳';
+                    } else {
+                        result = `🔢 秒级时间戳: ${Math.floor(date.getTime() / 1000)}\n`;
+                        result += `🔢 毫秒级时间戳: ${date.getTime()}\n`;
+                        result += `📅 日期时间: ${formatDateTime(date)}`;
+                    }
+                }
+            } 
+            else if (mode === 'ts2date') {
+                // 时间戳 → 日期
+                if (!isTimestamp(inputText)) {
+                    outputEl.value = '❌ 输入不是有效的时间戳';
+                    return;
+                }
+                const date = timestampToDate(inputText);
+                result = `📅 日期时间: ${formatDateTime(date)}\n`;
+                result += `🔢 秒级时间戳: ${Math.floor(date.getTime() / 1000)}\n`;
+                result += `🔢 毫秒级时间戳: ${date.getTime()}`;
+            } 
+            else if (mode === 'date2ts') {
+                // 日期 → 时间戳
+                const date = parseDateTime(inputText);
+                if (!date || isNaN(date.getTime())) {
+                    outputEl.value = '❌ 无法识别的日期格式\n支持格式: YYYY-MM-DD HH:mm:ss 或 YYYY/MM/DD HH:mm:ss';
+                    return;
+                }
+                result = `🔢 秒级时间戳: ${Math.floor(date.getTime() / 1000)}\n`;
+                result += `🔢 毫秒级时间戳: ${date.getTime()}\n`;
+                result += `📅 日期时间: ${formatDateTime(date)}`;
+            }
+            
+            outputEl.value = result;
+        } catch (e) {
+            outputEl.value = `❌ 转换失败：${e.message}`;
+        }
+    }
+
+    // 刷新当前时间显示
+    function refreshCurrentTime() {
+        const now = new Date();
+        currentTimeSpan.textContent = formatDateTime(now);
+    }
+
+    // 将输出结果填入输入框（方便反向转换）
+    function swapResult() {
+        const outputText = outputEl.value;
+        if (!outputText || outputText.includes('❌')) {
+            return;
+        }
+        
+        // 尝试提取时间戳或日期
+        // 如果输出包含"秒级时间戳"，提取第一个时间戳
+        const secondsMatch = outputText.match(/秒级时间戳: (\d+)/);
+        if (secondsMatch) {
+            inputEl.value = secondsMatch[1];
+            // 自动将模式切换到时间戳→日期，方便继续转换
+            for (let radio of modeRadios) {
+                if (radio.value === 'ts2date') radio.checked = true;
+            }
+        } else {
+            // 尝试提取日期时间
+            const dateMatch = outputText.match(/日期时间: (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)/);
+            if (dateMatch) {
+                // 去掉毫秒部分
+                const dateStr = dateMatch[1].split('.')[0];
+                inputEl.value = dateStr;
+                // 切换到日期→时间戳模式
+                for (let radio of modeRadios) {
+                    if (radio.value === 'date2ts') radio.checked = true;
+                }
+            }
+        }
+    }
+
+    // 清空输入输出
+    function clearAll() {
+        inputEl.value = '';
+        outputEl.value = '';
+    }
+
+    // 设置当前时间到输入框，并根据当前模式自动填充
+    function setNow() {
+        const now = new Date();
+        
+        // 获取当前选中的模式
+        let mode = 'ts2date';
+        for (let radio of modeRadios) {
+            if (radio.checked) {
+                mode = radio.value;
+                break;
+            }
+        }
+        
+        if (mode === 'ts2date') {
+            // 时间戳模式：填充秒级时间戳
+            inputEl.value = Math.floor(now.getTime() / 1000);
+        } else if (mode === 'date2ts') {
+            // 日期模式：填充日期时间字符串
+            inputEl.value = formatDateTimeSeconds(now);
+        } else {
+            // 自动模式：默认填充时间戳（更常用）
+            inputEl.value = Math.floor(now.getTime() / 1000);
+        }
+        
+        // 自动执行转换
+        convertTimestamp();
+    }
+
+    // 初始化
+    function init() {
+        refreshCurrentTime();
+        // 每秒更新当前时间显示
+        setInterval(refreshCurrentTime, 1000);
+        
+        // 初始转换示例
+        setTimeout(() => {
+            if (inputEl.value.trim()) {
+                convertTimestamp();
+            }
+        }, 10);
+    }
+
+    // 暴露全局方法
+    window.convertTimestamp = convertTimestamp;
+    window.refreshCurrentTime = refreshCurrentTime;
+    window.swapResult = swapResult;
+    window.clearAll = clearAll;
+    window.setNow = setNow;
+
+    // 页面加载完成后初始化
+    window.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+
+<!-- 继承原框架风格，增加时间戳转换功能 -->
+</body>
+</html>

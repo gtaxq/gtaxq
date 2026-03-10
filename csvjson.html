@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>CSV转JSON - gtaxq 工具站</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* 全局盒模型 — 完全沿用原框架 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 50px 10px;
+    background: #f5f5f5;
+}
+.container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+textarea {
+    width: 100%;
+    max-width: 100%;
+    height: 200px;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    resize: vertical;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: monospace;
+    line-height: 1.4;
+}
+textarea[readonly] {
+    background-color: #f0f0f0;
+    color: #333;
+    cursor: default;
+}
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    transition: background 0.2s;
+}
+button:hover {
+    background-color: #d0d0d0;
+}
+button.primary {
+    background-color: #4a90e2;
+    color: white;
+}
+button.primary:hover {
+    background-color: #357abd;
+}
+button.success {
+    background-color: #27ae60;
+    color: white;
+}
+button.success:hover {
+    background-color: #219a52;
+}
+h1 {
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+}
+.actions {
+    margin: 15px 0 10px;
+}
+.note {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 8px 0 5px;
+    text-align: left;
+    background: #f9f9f9;
+    padding: 8px;
+    border-radius: 4px;
+    max-height: 100px;
+    overflow-y: auto;
+}
+.radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin: 10px 0;
+    justify-content: center;
+}
+.radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    background: #f2f2f2;
+    padding: 6px 15px;
+    border-radius: 20px;
+}
+.radio-group input[type="radio"] {
+    margin: 0;
+    cursor: pointer;
+}
+.example-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin: 10px 0;
+}
+.example-buttons button {
+    padding: 5px 10px;
+    font-size: 14px;
+    background-color: #f2f2f2;
+}
+.param-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 10px 0;
+    justify-content: center;
+    align-items: center;
+    background: #f8f8f8;
+    padding: 10px;
+    border-radius: 8px;
+}
+.param-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.param-group label {
+    font-size: 14px;
+    white-space: nowrap;
+}
+.param-group input[type="text"], 
+.param-group input[type="number"],
+.param-group select {
+    width: 70px;
+    padding: 5px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.param-group input[type="text"] {
+    width: 120px;
+}
+.param-group select {
+    width: auto;
+}
+.error-message {
+    color: #e74c3c;
+    font-size: 14px;
+    text-align: left;
+    margin-top: 5px;
+    padding: 5px;
+    background: #fdeaea;
+    border-radius: 4px;
+    display: none;
+}
+.success-message {
+    color: #27ae60;
+    font-size: 14px;
+    text-align: left;
+    margin-top: 5px;
+    padding: 5px;
+    background: #e8f5e9;
+    border-radius: 4px;
+    display: none;
+}
+.stats {
+    font-size: 13px;
+    color: #666;
+    margin: 5px 0;
+    text-align: left;
+}
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+}
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔄 CSV 转 JSON</h1>
+    
+    <!-- 输入区域 -->
+    <textarea id="inputText" placeholder="输入 CSV 或 JSON 数据...">name,age,city,score
+张三,25,北京,85.5
+李四,30,上海,92.0
+王五,28,广州,78.5
+赵六,35,深圳,88.0</textarea>
+
+    <!-- 转换方向选择 -->
+    <div class="radio-group">
+        <label>
+            <input type="radio" name="mode" value="csv2json" checked> CSV → JSON
+        </label>
+        <label>
+            <input type="radio" name="mode" value="json2csv"> JSON → CSV
+        </label>
+    </div>
+
+    <!-- CSV 解析参数 (仅在 CSV→JSON 时显示) -->
+    <div id="csvParams" class="param-row">
+        <div class="param-group">
+            <label>分隔符:</label>
+            <select id="delimiter">
+                <option value="," selected>逗号 (,)</option>
+                <option value=";">分号 (;)</option>
+                <option value="\t">制表符 (\t)</option>
+                <option value="|">竖线 (|)</option>
+                <option value="custom">自定义</option>
+            </select>
+        </div>
+        <div class="param-group" id="customDelimiterGroup" style="display: none;">
+            <label>自定义:</label>
+            <input type="text" id="customDelimiter" value="" maxlength="1" placeholder="字符">
+        </div>
+        <div class="param-group">
+            <label>引号符:</label>
+            <select id="quoteChar">
+                <option value='"' selected>双引号 (")</option>
+                <option value="'">单引号 (')</option>
+                <option value="">无引号</option>
+            </select>
+        </div>
+        <div class="checkbox-group">
+            <label>
+                <input type="checkbox" id="hasHeader" checked> 第一行为标题行
+            </label>
+            <label>
+                <input type="checkbox" id="trimFields"> 修剪字段空格
+            </label>
+        </div>
+    </div>
+
+    <!-- JSON 输出参数 (仅在 CSV→JSON 时显示) -->
+    <div id="jsonParams" class="param-row">
+        <div class="param-group">
+            <label>JSON格式:</label>
+            <select id="jsonFormat">
+                <option value="pretty" selected>美化 (缩进2空格)</option>
+                <option value="compact">压缩 (一行)</option>
+            </select>
+        </div>
+        <div class="checkbox-group">
+            <label>
+                <input type="checkbox" id="detectNumbers"> 自动识别数字
+            </label>
+            <label>
+                <input type="checkbox" id="detectBooleans" checked> 自动识别布尔值
+            </label>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="actions">
+        <button class="primary" onclick="convert()">⚡ 转换</button>
+        <button onclick="swapText()">⇅ 上下互换</button>
+        <button onclick="clearAll()">🗑️ 清空</button>
+    </div>
+
+    <!-- 快捷示例按钮 -->
+    <div class="example-buttons">
+        <button onclick="loadExample('simple')">简单CSV</button>
+        <button onclick="loadExample('quoted')">带引号CSV</button>
+        <button onclick="loadExample('json')">JSON示例</button>
+        <button onclick="loadExample('complex')">复杂数据</button>
+        <button onclick="loadExample('semicolon')">分号分隔</button>
+    </div>
+
+    <!-- 状态信息 -->
+    <div id="statusMessage" class="error-message"></div>
+    <div id="stats" class="stats"></div>
+
+    <!-- 输出区域 -->
+    <textarea id="outputText" placeholder="转换结果会显示在这里..." readonly></textarea>
+
+    <div class="note">
+        <strong>📌 说明：</strong><br>
+        • CSV → JSON：将CSV表格数据转换为JSON对象数组<br>
+        • JSON → CSV：将JSON数组转换为CSV格式<br>
+        • 支持自定义分隔符（逗号、分号、制表符等）<br>
+        • 可自动识别数字和布尔值，修剪字段空格<br>
+        • 处理带引号的字段（含换行符、分隔符的内容）<br>
+        • 点击示例按钮快速体验不同格式
+    </div>
+</div>
+
+<script>
+(function() {
+    // DOM 元素
+    const inputText = document.getElementById('inputText');
+    const outputText = document.getElementById('outputText');
+    const statusMessage = document.getElementById('statusMessage');
+    const stats = document.getElementById('stats');
+    const modeRadios = document.getElementsByName('mode');
+    const csvParams = document.getElementById('csvParams');
+    const jsonParams = document.getElementById('jsonParams');
+    const delimiter = document.getElementById('delimiter');
+    const customDelimiter = document.getElementById('customDelimiter');
+    const customDelimiterGroup = document.getElementById('customDelimiterGroup');
+    const quoteChar = document.getElementById('quoteChar');
+    const hasHeader = document.getElementById('hasHeader');
+    const trimFields = document.getElementById('trimFields');
+    const jsonFormat = document.getElementById('jsonFormat');
+    const detectNumbers = document.getElementById('detectNumbers');
+    const detectBooleans = document.getElementById('detectBooleans');
+
+    // 监听模式变化
+    modeRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            const isCsvToJson = radio.value === 'csv2json' && radio.checked;
+            csvParams.style.display = isCsvToJson ? 'flex' : 'none';
+            jsonParams.style.display = isCsvToJson ? 'flex' : 'none';
+        });
+    });
+
+    // 监听分隔符选择
+    delimiter.addEventListener('change', () => {
+        customDelimiterGroup.style.display = delimiter.value === 'custom' ? 'flex' : 'none';
+    });
+
+    // 获取实际分隔符
+    function getActualDelimiter() {
+        if (delimiter.value === 'custom') {
+            return customDelimiter.value || ',';
+        } else if (delimiter.value === '\t') {
+            return '\t';
+        } else {
+            return delimiter.value;
+        }
+    }
+
+    // 获取引号符
+    function getActualQuoteChar() {
+        return quoteChar.value || '';
+    }
+
+    // 解析CSV行 (处理引号、转义等)
+    function parseCSVLine(line, delim, quote) {
+        if (!line) return [];
+        
+        const fields = [];
+        let field = '';
+        let inQuotes = false;
+        let i = 0;
+        
+        while (i < line.length) {
+            const char = line[i];
+            const nextChar = line[i + 1];
+            
+            if (quote && char === quote) {
+                if (inQuotes && nextChar === quote) {
+                    // 转义引号
+                    field += quote;
+                    i += 2;
+                } else {
+                    // 切换引号状态
+                    inQuotes = !inQuotes;
+                    i++;
+                }
+            } else if (!inQuotes && char === delim) {
+                // 字段结束
+                fields.push(trimFields.checked ? field.trim() : field);
+                field = '';
+                i++;
+            } else {
+                field += char;
+                i++;
+            }
+        }
+        
+        // 添加最后一个字段
+        fields.push(trimFields.checked ? field.trim() : field);
+        
+        return fields;
+    }
+
+    // 智能转换字段值
+    function parseValue(value) {
+        if (value === '') return '';
+        
+        // 去除首尾空格
+        const trimmed = value.trim();
+        
+        // 自动识别布尔值
+        if (detectBooleans.checked) {
+            if (trimmed.toLowerCase() === 'true') return true;
+            if (trimmed.toLowerCase() === 'false') return false;
+            if (trimmed === 'null') return null;
+        }
+        
+        // 自动识别数字
+        if (detectNumbers.checked) {
+            // 尝试转换为数字
+            const num = Number(trimmed);
+            if (!isNaN(num) && trimmed !== '') {
+                // 检查是否真的是数字（避免空字符串、"123abc"等）
+                if (/^-?\d*\.?\d+$/.test(trimmed)) {
+                    return num;
+                }
+            }
+        }
+        
+        return value;
+    }
+
+    // CSV 转 JSON
+    function csvToJson(csvText) {
+        if (!csvText.trim()) {
+            return { success: false, error: 'CSV内容为空' };
+        }
+
+        const delim = getActualDelimiter();
+        const quote = getActualQuoteChar();
+        
+        // 按行分割，处理可能的换行符
+        const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
+        if (lines.length === 0) {
+            return { success: false, error: '没有有效数据行' };
+        }
+
+        // 解析标题行
+        let headers = [];
+        let startRow = 0;
+        
+        if (hasHeader.checked) {
+            headers = parseCSVLine(lines[0], delim, quote);
+            startRow = 1;
+        } else {
+            // 如果没有标题行，使用列索引作为标题
+            const firstLine = parseCSVLine(lines[0], delim, quote);
+            headers = firstLine.map((_, index) => `column${index + 1}`);
+        }
+
+        // 解析数据行
+        const result = [];
+        let rowCount = 0;
+        let errorRows = [];
+
+        for (let i = startRow; i < lines.length; i++) {
+            const line = lines[i];
+            if (!line.trim()) continue;
+            
+            const fields = parseCSVLine(line, delim, quote);
+            
+            // 如果字段数少于标题数，填充空字符串
+            // 如果字段数多于标题数，忽略多余的字段
+            const row = {};
+            for (let j = 0; j < headers.length; j++) {
+                if (j < fields.length) {
+                    row[headers[j]] = parseValue(fields[j]);
+                } else {
+                    row[headers[j]] = '';
+                }
+            }
+            
+            result.push(row);
+            rowCount++;
+        }
+
+        // 生成JSON字符串
+        let jsonStr;
+        if (jsonFormat.value === 'pretty') {
+            jsonStr = JSON.stringify(result, null, 2);
+        } else {
+            jsonStr = JSON.stringify(result);
+        }
+
+        // 统计信息
+        const statsText = `✅ 转换成功：${rowCount} 行数据，${headers.length} 列`;
+        
+        return {
+            success: true,
+            data: jsonStr,
+            stats: statsText,
+            rowCount,
+            colCount: headers.length
+        };
+    }
+
+    // JSON 转 CSV
+    function jsonToCsv(jsonText) {
+        if (!jsonText.trim()) {
+            return { success: false, error: 'JSON内容为空' };
+        }
+
+        try {
+            // 解析JSON
+            let data = JSON.parse(jsonText);
+            
+            // 确保是数组
+            if (!Array.isArray(data)) {
+                // 如果是对象，转换为数组
+                if (typeof data === 'object' && data !== null) {
+                    data = [data];
+                } else {
+                    return { success: false, error: 'JSON必须是对象数组或单个对象' };
+                }
+            }
+
+            if (data.length === 0) {
+                return { success: false, error: '数组为空' };
+            }
+
+            // 获取所有列名（合并所有对象的键）
+            const headers = new Set();
+            data.forEach(row => {
+                if (row && typeof row === 'object') {
+                    Object.keys(row).forEach(key => headers.add(key));
+                }
+            });
+
+            const headerArray = Array.from(headers);
+            const delim = getActualDelimiter();
+            const quote = getActualQuoteChar();
+
+            // 构建CSV行
+            const lines = [];
+            
+            // 添加标题行
+            if (hasHeader.checked) {
+                const headerLine = headerArray.map(h => {
+                    if (quote && (h.includes(delim) || h.includes('\n') || h.includes(quote))) {
+                        return quote + h.replace(new RegExp(quote, 'g'), quote + quote) + quote;
+                    }
+                    return h;
+                }).join(delim);
+                lines.push(headerLine);
+            }
+
+            // 添加数据行
+            data.forEach(row => {
+                const fields = headerArray.map(header => {
+                    let value = row[header] !== undefined ? row[header] : '';
+                    
+                    // 转换为字符串
+                    if (value === null || value === undefined) {
+                        value = '';
+                    } else if (typeof value === 'object') {
+                        value = JSON.stringify(value);
+                    } else {
+                        value = String(value);
+                    }
+                    
+                    // 如果需要引号（包含分隔符、换行符或引号）
+                    if (quote && (value.includes(delim) || value.includes('\n') || value.includes(quote))) {
+                        return quote + value.replace(new RegExp(quote, 'g'), quote + quote) + quote;
+                    }
+                    return value;
+                });
+                lines.push(fields.join(delim));
+            });
+
+            // 统计信息
+            const statsText = `✅ 转换成功：${data.length} 行数据，${headerArray.length} 列`;
+            
+            return {
+                success: true,
+                data: lines.join('\n'),
+                stats: statsText,
+                rowCount: data.length,
+                colCount: headerArray.length
+            };
+        } catch (e) {
+            return { success: false, error: `JSON解析失败: ${e.message}` };
+        }
+    }
+
+    // 主转换函数
+    function convert() {
+        const text = inputText.value;
+        if (!text.trim()) {
+            statusMessage.textContent = '请输入数据';
+            statusMessage.style.display = 'block';
+            statusMessage.className = 'error-message';
+            outputText.value = '';
+            stats.textContent = '';
+            return;
+        }
+
+        // 获取转换方向
+        let mode = 'csv2json';
+        for (let radio of modeRadios) {
+            if (radio.checked) {
+                mode = radio.value;
+                break;
+            }
+        }
+
+        // 隐藏之前的消息
+        statusMessage.style.display = 'none';
+        stats.textContent = '';
+
+        try {
+            let result;
+            if (mode === 'csv2json') {
+                result = csvToJson(text);
+            } else {
+                result = jsonToCsv(text);
+            }
+
+            if (result.success) {
+                outputText.value = result.data;
+                if (result.stats) {
+                    stats.textContent = result.stats;
+                }
+            } else {
+                statusMessage.textContent = result.error;
+                statusMessage.style.display = 'block';
+                statusMessage.className = 'error-message';
+                outputText.value = '';
+            }
+        } catch (e) {
+            statusMessage.textContent = `转换失败: ${e.message}`;
+            statusMessage.style.display = 'block';
+            statusMessage.className = 'error-message';
+            outputText.value = '';
+        }
+    }
+
+    // 交换输入输出
+    function swapText() {
+        const output = outputText.value;
+        if (output && !output.includes('失败')) {
+            inputText.value = output;
+            outputText.value = '';
+            statusMessage.style.display = 'none';
+            stats.textContent = '';
+        }
+    }
+
+    // 清空
+    function clearAll() {
+        inputText.value = '';
+        outputText.value = '';
+        statusMessage.style.display = 'none';
+        stats.textContent = '';
+    }
+
+    // 加载示例
+    function loadExample(type) {
+        switch(type) {
+            case 'simple':
+                inputText.value = `name,age,city,score
+张三,25,北京,85.5
+李四,30,上海,92.0
+王五,28,广州,78.5
+赵六,35,深圳,88.0`;
+                break;
+            case 'quoted':
+                inputText.value = `"姓名","年龄","城市","描述"
+"张三",25,"北京","喜欢编程, 读书"
+"李四",30,"上海","会说""你好""和英语"
+"王五",28,"广州","爱好:足球、音乐"`;
+                break;
+            case 'json':
+                inputText.value = `[
+  {
+    "name": "张三",
+    "age": 25,
+    "city": "北京",
+    "active": true,
+    "score": 85.5
+  },
+  {
+    "name": "李四",
+    "age": 30,
+    "city": "上海",
+    "active": false,
+    "score": 92
+  }
+]`;
+                break;
+            case 'complex':
+                inputText.value = `id,name,email,age,active,last_login
+1,张三,zhangsan@example.com,25,true,2023-12-25
+2,李四,lisi@example.com,30,false,2024-01-15
+3,王五,wangwu@example.com,28,true,2024-02-01
+4,赵六,zhaoliu@example.com,35,true,2024-02-10`;
+                break;
+            case 'semicolon':
+                inputText.value = `name;age;city;score
+张三;25;北京;85.5
+李四;30;上海;92.0
+王五;28;广州;78.5`;
+                // 自动切换分隔符
+                delimiter.value = ';';
+                break;
+        }
+        // 自动执行转换
+        convert();
+    }
+
+    // 暴露全局方法
+    window.convert = convert;
+    window.swapText = swapText;
+    window.clearAll = clearAll;
+    window.loadExample = loadExample;
+
+    // 页面加载后执行一次
+    window.addEventListener('DOMContentLoaded', () => {
+        if (!inputText.value.trim()) {
+            loadExample('simple');
+        } else {
+            convert();
+        }
+    });
+
+})();
+</script>
+
+<!-- 继承原框架风格，增加CSV转JSON功能 -->
+</body>
+</html>
