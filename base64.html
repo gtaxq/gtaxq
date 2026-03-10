@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Base64 编码/解码 - gtaxq 工具站</title>
+<style>
+body{font-family:Arial;text-align:center;margin:50px;}
+textarea{width:80%;height:120px;margin:10px 0;padding:10px;font-size:16px;}
+button{padding:10px 20px;margin:5px;font-size:16px;cursor:pointer;}
+</style>
+</head>
+<body>
+<h1>Base64 编码/解码</h1>
+<textarea id="input" placeholder="输入文本..."></textarea><br>
+<button onclick="encodeBase64()">编码</button>
+<button onclick="decodeBase64()">解码</button>
+<button onclick="clearText()">清空</button>
+<textarea id="output" placeholder="结果..." readonly></textarea>
+
+<script>
+function encodeBase64(){
+  try{
+    const t=document.getElementById('input').value;
+    document.getElementById('output').value=btoa(unescape(encodeURIComponent(t)));
+  }catch(e){document.getElementById('output').value="输入非法字符";}
+}
+function decodeBase64(){
+  try{
+    const t=document.getElementById('input').value;
+    document.getElementById('output').value=decodeURIComponent(escape(atob(t)));
+  }catch(e){document.getElementById('output').value="输入不是有效 Base64";}
+}
+function clearText(){document.getElementById('input').value="";document.getElementById('output').value="";}
+</script>
+</body>
+</html>
