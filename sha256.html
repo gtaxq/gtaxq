@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>SHA256 加密 - gtaxq 工具站</title>
+<style>body{font-family:Arial;text-align:center;margin:50px;}textarea{width:80%;height:100px;margin:10px 0;padding:10px;font-size:16px;}button{padding:10px 20px;margin:5px;font-size:16px;cursor:pointer;}</style>
+</head>
+<body>
+<h1>SHA256 加密</h1>
+<textarea id="input" placeholder="输入文本..."></textarea><br>
+<button onclick="encodeSHA256()">生成 SHA256</button>
+<button onclick="clearText()">清空</button>
+<textarea id="output" placeholder="结果..." readonly></textarea>
+
+<script>
+async function encodeSHA256(){
+  const t=document.getElementById('input').value;
+  const data=new TextEncoder().encode(t);
+  const hash=await crypto.subtle.digest("SHA-256",data);
+  const result=Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  document.getElementById('output').value=result;
+}
+function clearText(){document.getElementById('input').value="";document.getElementById('output').value="";}
+</script>
+</body>
+</html>
