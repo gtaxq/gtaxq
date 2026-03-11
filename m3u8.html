@@ -220,10 +220,7 @@ h1 {
     font-size: 13px;
     border-left: 4px solid #ffc107;
     text-align: left;
-}
-.cors-warning a {
-    color: #856404;
-    font-weight: bold;
+    display: none;
 }
 .proxy-option {
     display: flex;
@@ -248,6 +245,7 @@ h1 {
     <div class="url-input-row">
         <input type="text" id="m3u8Url" placeholder="输入 M3U8 地址 (例如: https://example.com/playlist.m3u8)" value="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">
         <button class="primary" onclick="playM3U8()">▶ 播放</button>
+        <button onclick="stopPlayback()">⏹️ 停止</button>
     </div>
 
     <!-- CORS 代理选项 -->
@@ -268,10 +266,11 @@ h1 {
     </div>
 
     <!-- CORS 警告信息 -->
-    <div id="corsWarning" class="cors-warning" style="display: none;">
-        ⚠️ 如果遇到跨域问题(CORS)，可以：
-        <a href="#" onclick="document.getElementById('useProxy').checked = true; playM3U8(); return false;">启用代理重试</a> 或
-        <a href="#" onclick="installCorsExtension()" target="_blank">安装CORS插件</a>
+    <div id="corsWarning" class="cors-warning">
+        ⚠️ 检测到跨域问题(CORS)。<br>
+        解决方法：
+        <button onclick="document.getElementById('useProxy').checked = true; playM3U8();" style="padding: 2px 8px; margin: 0 5px;">启用代理重试</button>
+        <button onclick="installCorsExtension()" style="padding: 2px 8px;">安装CORS插件</button>
     </div>
 
     <!-- 错误信息显示 -->
@@ -304,7 +303,7 @@ h1 {
     
     // 播放器实例
     let player = null;
-    let isPlayerReady = false;
+    let isPlayerInitialized = false;
 
     // 初始化播放器
     function initPlayer() {
@@ -320,30 +319,13 @@ h1 {
                         smoothQualityChange: true,
                         overrideNative: true
                     }
-                },
-                // 添加错误处理
-                plugins: {
-                    errorHandler: true
                 }
             }, function() {
                 console.log('播放器初始化成功');
-                isPlayerReady = true;
+                isPlayerInitialized = true;
                 
                 // 监听错误事件
-                this.on('error', function() {
-                    const error = this.error();
-                    const errorCode = error ? error.code : 'unknown';
-                    const errorMessage = error ? error.message : '未知错误';
-                    
-                    console.error('播放器错误:', errorCode, errorMessage);
-                    
-                    // 如果是CORS错误或网络错误，显示提示
-                    if (errorCode === 4 || errorMessage.includes('CORS') || errorMessage.includes('跨域')) {
-                        corsWarning.style.display = 'block';
-                    }
-                    
-                    showError(`播放错误: ${errorMessage} (代码: ${errorCode})`);
-                });
+                this.on('error', handlePlayerError);
                 
                 // 监听加载开始
                 this.on('loadstart', function() {
@@ -355,6 +337,29 @@ h1 {
         return player;
     }
 
+    // 处理播放器错误
+    function handlePlayerError() {
+        if (!player) return;
+        
+        const error = player.error();
+        if (!error) return;
+        
+        const errorCode = error.code || 'unknown';
+        const errorMessage_text = error.message || '未知错误';
+        
+        console.error('播放器错误:', errorCode, errorMessage_text);
+        
+        // 判断是否是CORS错误
+        if (errorCode === 4 || 
+            errorMessage_text.toLowerCase().includes('cors') || 
+            errorMessage_text.toLowerCase().includes('跨域') ||
+            errorMessage_text.toLowerCase().includes('access-control')) {
+            corsWarning.style.display = 'block';
+        }
+        
+        showError(`播放错误 (${errorCode}): ${errorMessage_text}`);
+    }
+
     // 获取代理URL
     function getProxiedUrl(url) {
         if (!useProxy.checked) return url;
@@ -362,11 +367,12 @@ h1 {
         // 使用多个代理备选
         const proxies = [
             'https://cors-anywhere.herokuapp.com/',
-            'https://api.allorigins.win/raw?url=',
+            'https://api.codetabs.com/v1/proxy/?quest=',
             'https://proxy.cors.sh/',
         ];
-        // 随机选择一个代理（实际使用第一个）
-        return proxies[0] + url;
+        // 编码URL
+        const encodedUrl = encodeURIComponent(url);
+        return proxies[0] + encodedUrl;
     }
 
     // 播放 M3U8
@@ -388,16 +394,15 @@ h1 {
         corsWarning.style.display = 'none';
 
         try {
-            const player = initPlayer();
-            
-            // 等待播放器准备好
-            if (!isPlayerReady) {
-                player.ready(function() {
-                    loadSource(url);
-                });
-            } else {
-                loadSource(url);
+            // 确保播放器已初始化
+            if (!isPlayerInitialized) {
+                initPlayer();
             }
+            
+            // 等待一小段时间确保播放器就绪
+            setTimeout(() => {
+                loadSource(url);
+            }, 100);
 
         } catch (e) {
             showError(`播放失败: ${e.message}`);
@@ -406,14 +411,18 @@ h1 {
 
     // 加载视频源
     function loadSource(url) {
+        if (!player) {
+            player = initPlayer();
+        }
+
         const finalUrl = getProxiedUrl(url);
+        console.log('加载视频源:', finalUrl);
         
         // 先暂停当前播放
-        if (player) {
-            player.pause();
-            // 清空当前源
-            player.src('');
-        }
+        player.pause();
+        
+        // 清空当前源
+        player.src('');
         
         // 短暂延迟后设置新源
         setTimeout(() => {
@@ -426,8 +435,20 @@ h1 {
             player.play().catch(e => {
                 // 自动播放失败是正常的（浏览器策略），不显示错误
                 console.log('自动播放被阻止:', e);
+                // 显示提示信息但不作为错误
+                showError('点击播放按钮开始播放', 'info');
             });
-        }, 100);
+        }, 200);
+    }
+
+    // 停止播放
+    function stopPlayback() {
+        if (player) {
+            player.pause();
+            player.src('');
+            hideError();
+            corsWarning.style.display = 'none';
+        }
     }
 
     // 加载示例
@@ -454,18 +475,22 @@ h1 {
     // 清空 URL
     function clearUrl() {
         m3u8Url.value = '';
-        if (player) {
-            player.pause();
-            player.src('');
-        }
-        hideError();
-        corsWarning.style.display = 'none';
+        stopPlayback();
     }
 
-    // 显示错误
-    function showError(msg) {
+    // 显示错误或信息
+    function showError(msg, type = 'error') {
         errorMessage.textContent = msg;
         errorMessage.style.display = 'block';
+        if (type === 'error') {
+            errorMessage.style.background = '#fdeaea';
+            errorMessage.style.color = '#e74c3c';
+            errorMessage.style.borderLeftColor = '#e74c3c';
+        } else {
+            errorMessage.style.background = '#e8f5e9';
+            errorMessage.style.color = '#2e7d32';
+            errorMessage.style.borderLeftColor = '#4caf50';
+        }
     }
 
     // 隐藏错误
@@ -475,11 +500,12 @@ h1 {
 
     // 安装CORS扩展（引导用户）
     function installCorsExtension() {
-        window.open('https://chrome.google.com/webstore/search/allow%20cors?hl=zh-CN', '_blank');
+        window.open('https://chrome.google.com/webstore/search/allow%20cors', '_blank');
     }
 
     // 暴露全局方法
     window.playM3U8 = playM3U8;
+    window.stopPlayback = stopPlayback;
     window.loadExample = loadExample;
     window.clearUrl = clearUrl;
     window.installCorsExtension = installCorsExtension;
@@ -487,8 +513,6 @@ h1 {
     // 页面加载后初始化播放器
     window.addEventListener('DOMContentLoaded', () => {
         initPlayer();
-        // 可选：自动播放示例
-        // setTimeout(() => playM3U8(), 100);
     });
 
 })();
