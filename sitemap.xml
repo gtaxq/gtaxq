@@ -1,10 +1,183 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+  
+  <!-- 首页 - 最重要 -->
   <url>
-    <loc>https://gtaxq.cn/base64.html</loc>
-    <lastmod>2026-03-10</lastmod>
+    <loc>https://gtaxq.cn/</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  
+  <!-- 字节转换 -->
+  <url>
+    <loc>https://gtaxq.cn/bytes.html</loc>
+    <lastmod>2026-03-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
-  <!-- 添加所有工具页面的 URL -->
+  
+  <!-- Base64 编码/解码 -->
+  <url>
+    <loc>https://gtaxq.cn/base64.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- MD5 加密 -->
+  <url>
+    <loc>https://gtaxq.cn/md5.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- SHA256 加密 -->
+  <url>
+    <loc>https://gtaxq.cn/sha256.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- URL 编码/解码 -->
+  <url>
+    <loc>https://gtaxq.cn/url.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- JSON 格式化 -->
+  <url>
+    <loc>https://gtaxq.cn/json.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- UUID 生成 -->
+  <url>
+    <loc>https://gtaxq.cn/uuid.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- JWT 解码 -->
+  <url>
+    <loc>https://gtaxq.cn/jwt.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- 时间戳转换 -->
+  <url>
+    <loc>https://gtaxq.cn/timestamp.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- AES 加密/解密 -->
+  <url>
+    <loc>https://gtaxq.cn/aes.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- RSA 加密/解密 -->
+  <url>
+    <loc>https://gtaxq.cn/rsa.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- HTML 转义/反转义 -->
+  <url>
+    <loc>https://gtaxq.cn/html.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- XML 格式化 -->
+  <url>
+    <loc>https://gtaxq.cn/xml.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- CSV 转 JSON -->
+  <url>
+    <loc>https://gtaxq.cn/csvjson.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- 正则测试 -->
+  <url>
+    <loc>https://gtaxq.cn/regex.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- 二维码生成 -->
+  <url>
+    <loc>https://gtaxq.cn/qrcode.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- 二维码解析 -->
+  <url>
+    <loc>https://gtaxq.cn/qrcode-jx.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- 条形码生成 -->
+  <url>
+    <loc>https://gtaxq.cn/barcode.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- 随机密码生成 -->
+  <url>
+    <loc>https://gtaxq.cn/password.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- 颜色转换 -->
+  <url>
+    <loc>https://gtaxq.cn/color.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Emoji 转 Unicode -->
+  <url>
+    <loc>https://gtaxq.cn/emoji.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
 </urlset>
