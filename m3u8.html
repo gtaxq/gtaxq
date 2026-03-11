@@ -1,1 +1,388 @@
 
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>M3U8 在线播放器 - gtaxq 工具站</title>
+<meta name="description" content="免费在线 M3U8 视频播放器，支持输入 M3U8 地址在线播放直播流、点播视频。">
+<meta name="keywords" content="M3U8播放器,视频播放,直播流,HLS播放,在线播放器,gtaxq,开发者工具">
+<meta name="author" content="gtaxq 工具站">
+<meta name="copyright" content="Copyright © gtaxq.com">
+<meta name="robots" content="index, follow">
+<meta http-equiv="content-language" content="zh-CN">
+<meta name="theme-color" content="#4a90e2">
+<!-- ========== Open Graph 协议 ========== -->
+<meta property="og:title" content="M3U8 在线播放器 - gtaxq 工具站">
+<meta property="og:description" content="免费在线 M3U8 视频播放器，支持输入 M3U8 地址在线播放。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://gtaxq.cn/m3u8.html">
+<meta property="og:image" content="https://gtaxq.cn/images/logo.png">
+<meta property="og:site_name" content="gtaxq 工具站">
+<meta property="og:locale" content="zh_CN">
+<!-- ========== Twitter 卡片 ========== -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="M3U8 在线播放器 - gtaxq 工具站">
+<meta name="twitter:description" content="免费在线 M3U8 视频播放器，支持输入 M3U8 地址在线播放。">
+<meta name="twitter:image" content="https://gtaxq.cn/images/logo.png">
+
+<!-- ========== 百度统计 ========== -->
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?2506ef1bc236b6291c836e5467650b47";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<!-- ========== 结构化数据 ========== -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "M3U8 在线播放器",
+  "description": "免费在线 M3U8 视频播放器",
+  "url": "https://gtaxq.cn/m3u8.html",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "All",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "gtaxq 工具站",
+    "url": "https://gtaxq.cn"
+  }
+}
+</script>
+
+<!-- ========== 站点地图引用 ========== -->
+<link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Video.js 样式和脚本 -->
+<link href="/js/video-js.min.css" rel="stylesheet">
+<script src="/js/video.min.js"></script>
+
+<style>
+/* 全局盒模型 — 完全沿用原框架 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 50px 10px;
+    background: #f5f5f5;
+}
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+textarea, input, select {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+input[readonly], textarea[readonly] {
+    background-color: #f0f0f0;
+    color: #333;
+    cursor: default;
+}
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    transition: background 0.2s;
+}
+button:hover {
+    background-color: #d0d0d0;
+}
+button.primary {
+    background-color: #4a90e2;
+    color: white;
+}
+button.primary:hover {
+    background-color: #357abd;
+}
+button.success {
+    background-color: #27ae60;
+    color: white;
+}
+button.success:hover {
+    background-color: #219a52;
+}
+h1 {
+    margin-bottom: 10px;
+    font-size: 1.8rem;
+}
+.actions {
+    margin: 15px 0 10px;
+}
+.note {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 8px 0 5px;
+    text-align: left;
+    background: #f9f9f9;
+    padding: 8px;
+    border-radius: 4px;
+}
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.header h1 {
+    margin-bottom: 0;
+}
+.header a {
+    text-decoration: none;
+    color: #4a90e2;
+    font-size: 18px;
+    white-space: nowrap;
+}
+.url-input-row {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0;
+    align-items: center;
+}
+.url-input-row input {
+    flex: 1;
+    margin-bottom: 0;
+}
+.url-input-row button {
+    margin: 0;
+    white-space: nowrap;
+}
+.example-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin: 10px 0;
+}
+.example-buttons button {
+    padding: 5px 10px;
+    font-size: 14px;
+    background-color: #f2f2f2;
+}
+.video-container {
+    margin: 20px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+}
+.video-js {
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%; /* 16:9 比例 */
+    background-color: #000;
+}
+.error-message {
+    color: #e74c3c;
+    font-size: 14px;
+    text-align: left;
+    margin-top: 5px;
+    padding: 10px;
+    background: #fdeaea;
+    border-radius: 4px;
+    display: none;
+    border-left: 4px solid #e74c3c;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>📺 M3U8 在线播放器</h1>
+        <a href="/">← 返回主页</a>
+    </div>
+    
+    <!-- M3U8 地址输入 -->
+    <div class="url-input-row">
+        <input type="text" id="m3u8Url" placeholder="输入 M3U8 地址 (例如: https://example.com/playlist.m3u8)" value="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">
+        <button class="primary" onclick="playM3U8()">▶ 播放</button>
+    </div>
+
+    <!-- 示例按钮 -->
+    <div class="example-buttons">
+        <button onclick="loadExample('bigbuck')">🐰 Big Buck Bunny</button>
+        <button onclick="loadExample('test')">🎬 测试流</button>
+        <button onclick="loadExample('live')">📡 直播示例</button>
+        <button onclick="loadExample('4k')">4K 示例</button>
+        <button onclick="clearUrl()">🗑️ 清空</button>
+    </div>
+
+    <!-- 错误信息显示 -->
+    <div id="errorMessage" class="error-message"></div>
+
+    <!-- 视频播放器 -->
+    <div class="video-container">
+        <video id="my_video_1" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="auto" data-setup='{}'>
+            <source src="" type="application/x-mpegURL">
+        </video>
+    </div>
+
+    <div class="note">
+        <strong>📌 说明：</strong><br>
+        • 输入 M3U8 地址，点击播放按钮即可在线播放 HLS 视频流<br>
+        • 支持直播流和点播视频，需要 M3U8 地址支持跨域访问<br>
+        • 提供多个示例地址供测试使用<br>
+        • 如果视频无法播放，可能是地址失效或跨域限制<br>
+        • 基于 Video.js 播放器，支持大多数现代浏览器
+    </div>
+</div>
+
+<script>
+(function() {
+    // DOM 元素
+    const m3u8Url = document.getElementById('m3u8Url');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    // 初始化播放器
+    let player = null;
+    
+    function initPlayer() {
+        if (!player) {
+            player = videojs('my_video_1', {
+                controls: true,
+                autoplay: false,
+                preload: 'auto',
+                fluid: true,
+                html5: {
+                    hls: {
+                        enableLowInitialPlaylist: true,
+                        smoothQualityChange: true,
+                        overrideNative: true
+                    }
+                }
+            });
+        }
+        return player;
+    }
+
+    // 播放 M3U8
+    function playM3U8() {
+        const url = m3u8Url.value.trim();
+        
+        if (!url) {
+            showError('请输入 M3U8 地址');
+            return;
+        }
+
+        // 简单的 URL 验证
+        if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('//')) {
+            showError('请输入有效的 HTTP/HTTPS 地址');
+            return;
+        }
+
+        hideError();
+
+        try {
+            const player = initPlayer();
+            
+            // 更新视频源
+            player.src({
+                src: url,
+                type: 'application/x-mpegURL'
+            });
+            
+            // 开始播放
+            player.play().catch(e => {
+                // 自动播放可能被浏览器阻止，显示提示但不报错
+                console.log('自动播放失败:', e);
+            });
+
+            // 监听错误
+            player.one('error', function() {
+                const error = player.error();
+                showError(`播放失败: ${error ? error.message : '未知错误'}`);
+            });
+
+        } catch (e) {
+            showError(`播放器初始化失败: ${e.message}`);
+        }
+    }
+
+    // 加载示例
+    function loadExample(type) {
+        switch(type) {
+            case 'bigbuck':
+                m3u8Url.value = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
+                break;
+            case 'test':
+                m3u8Url.value = 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8';
+                break;
+            case 'live':
+                m3u8Url.value = 'https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8';
+                break;
+            case '4k':
+                m3u8Url.value = 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example_hevc/master.m3u8';
+                break;
+        }
+        playM3U8();
+    }
+
+    // 清空 URL
+    function clearUrl() {
+        m3u8Url.value = '';
+        // 停止播放
+        if (player) {
+            player.pause();
+            player.src('');
+        }
+        hideError();
+    }
+
+    // 显示错误
+    function showError(msg) {
+        errorMessage.textContent = msg;
+        errorMessage.style.display = 'block';
+    }
+
+    // 隐藏错误
+    function hideError() {
+        errorMessage.style.display = 'none';
+    }
+
+    // 暴露全局方法
+    window.playM3U8 = playM3U8;
+    window.loadExample = loadExample;
+    window.clearUrl = clearUrl;
+
+    // 页面加载后初始化播放器
+    window.addEventListener('DOMContentLoaded', () => {
+        initPlayer();
+        // 自动播放示例（可选，注释掉就不自动播放）
+        // playM3U8();
+    });
+
+})();
+</script>
+
+</body>
+</html>
