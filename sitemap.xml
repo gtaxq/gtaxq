@@ -179,5 +179,14 @@
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
+
+ <!-- m3u8播放器 -->
+  <url>
+    <loc>https://gtaxq.cn/m3u8.html</loc>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
   
 </urlset>
+
