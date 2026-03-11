@@ -122,19 +122,9 @@ button.primary {
 button.primary:hover {
     background-color: #357abd;
 }
-button.success {
-    background-color: #27ae60;
-    color: white;
-}
-button.success:hover {
-    background-color: #219a52;
-}
 h1 {
     margin-bottom: 10px;
     font-size: 1.8rem;
-}
-.actions {
-    margin: 15px 0 10px;
 }
 .note {
     font-size: 0.85rem;
@@ -196,8 +186,7 @@ h1 {
 }
 .video-js {
     width: 100%;
-    height: 400px;
-    padding-bottom: 0; /* 16:9 比例 */
+    height: 400px; /* 固定高度 */
     background-color: #000;
 }
 .error-message {
@@ -210,26 +199,6 @@ h1 {
     border-radius: 4px;
     display: none;
     border-left: 4px solid #e74c3c;
-}
-.cors-warning {
-    background: #fff3cd;
-    color: #856404;
-    padding: 8px;
-    border-radius: 4px;
-    margin: 10px 0;
-    font-size: 13px;
-    border-left: 4px solid #ffc107;
-    text-align: left;
-    display: none;
-}
-.proxy-option {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 10px 0;
-    padding: 8px;
-    background: #f8f9fa;
-    border-radius: 4px;
 }
 </style>
 </head>
@@ -248,14 +217,6 @@ h1 {
         <button onclick="stopPlayback()">⏹️ 停止</button>
     </div>
 
-    <!-- CORS 代理选项 -->
-    <div class="proxy-option">
-        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-            <input type="checkbox" id="useProxy" checked> 🌐 使用CORS代理 (解决跨域问题)
-        </label>
-        <span style="color: #666; font-size: 13px; margin-left: auto;">注意：公共代理可能有访问限制</span>
-    </div>
-
     <!-- 示例按钮 -->
     <div class="example-buttons">
         <button onclick="loadExample('bigbuck')">🐰 Big Buck Bunny</button>
@@ -263,14 +224,6 @@ h1 {
         <button onclick="loadExample('live')">📡 直播示例</button>
         <button onclick="loadExample('4k')">4K 示例</button>
         <button onclick="clearUrl()">🗑️ 清空</button>
-    </div>
-
-    <!-- CORS 警告信息 -->
-    <div id="corsWarning" class="cors-warning">
-        ⚠️ 检测到跨域问题(CORS)。<br>
-        解决方法：
-        <button onclick="document.getElementById('useProxy').checked = false; playM3U8();" style="padding: 2px 8px; margin: 0 5px;">启用代理重试</button>
-        <button onclick="installCorsExtension()" style="padding: 2px 8px;">安装CORS插件</button>
     </div>
 
     <!-- 错误信息显示 -->
@@ -287,7 +240,6 @@ h1 {
         <strong>📌 说明：</strong><br>
         • 输入 M3U8 地址，点击播放按钮即可在线播放 HLS 视频流<br>
         • 支持直播流和点播视频，需要 M3U8 地址支持跨域访问<br>
-        • 如果遇到跨域问题，勾选"CORS代理"选项后重试<br>
         • 提供多个示例地址供测试使用<br>
         • 基于 Video.js 播放器，支持大多数现代浏览器
     </div>
@@ -298,12 +250,9 @@ h1 {
     // DOM 元素
     const m3u8Url = document.getElementById('m3u8Url');
     const errorMessage = document.getElementById('errorMessage');
-    const corsWarning = document.getElementById('corsWarning');
-    const useProxy = document.getElementById('useProxy');
     
     // 播放器实例
     let player = null;
-    let isPlayerInitialized = false;
 
     // 初始化播放器
     function initPlayer() {
@@ -312,7 +261,7 @@ h1 {
                 controls: true,
                 autoplay: false,
                 preload: 'auto',
-                fluid: true,
+                fluid: false, // 禁用流动布局，使用固定高度
                 html5: {
                     hls: {
                         enableLowInitialPlaylist: true,
@@ -322,57 +271,17 @@ h1 {
                 }
             }, function() {
                 console.log('播放器初始化成功');
-                isPlayerInitialized = true;
                 
                 // 监听错误事件
-                this.on('error', handlePlayerError);
-                
-                // 监听加载开始
-                this.on('loadstart', function() {
-                    hideError();
-                    corsWarning.style.display = 'none';
+                this.on('error', function() {
+                    const error = this.error();
+                    if (error) {
+                        showError(`播放错误: ${error.message || '未知错误'}`);
+                    }
                 });
             });
         }
         return player;
-    }
-
-    // 处理播放器错误
-    function handlePlayerError() {
-        if (!player) return;
-        
-        const error = player.error();
-        if (!error) return;
-        
-        const errorCode = error.code || 'unknown';
-        const errorMessage_text = error.message || '未知错误';
-        
-        console.error('播放器错误:', errorCode, errorMessage_text);
-        
-        // 判断是否是CORS错误
-        if (errorCode === 4 || 
-            errorMessage_text.toLowerCase().includes('cors') || 
-            errorMessage_text.toLowerCase().includes('跨域') ||
-            errorMessage_text.toLowerCase().includes('access-control')) {
-            corsWarning.style.display = 'block';
-        }
-        
-        showError(`播放错误 (${errorCode}): ${errorMessage_text}`);
-    }
-
-    // 获取代理URL
-    function getProxiedUrl(url) {
-        if (!useProxy.checked) return url;
-        
-        // 使用多个代理备选
-        const proxies = [
-            'https://cors-anywhere.herokuapp.com/',
-            'https://api.codetabs.com/v1/proxy/?quest=',
-            'https://proxy.cors.sh/',
-        ];
-        // 编码URL
-        const encodedUrl = encodeURIComponent(url);
-        return proxies[0] + encodedUrl;
     }
 
     // 播放 M3U8
@@ -384,61 +293,36 @@ h1 {
             return;
         }
 
-        // 简单的 URL 验证
         if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('//')) {
             showError('请输入有效的 HTTP/HTTPS 地址');
             return;
         }
 
         hideError();
-        corsWarning.style.display = 'none';
 
         try {
             // 确保播放器已初始化
-            if (!isPlayerInitialized) {
+            if (!player) {
                 initPlayer();
             }
             
-            // 等待一小段时间确保播放器就绪
-            setTimeout(() => {
-                loadSource(url);
-            }, 100);
-
-        } catch (e) {
-            showError(`播放失败: ${e.message}`);
-        }
-    }
-
-    // 加载视频源
-    function loadSource(url) {
-        if (!player) {
-            player = initPlayer();
-        }
-
-        const finalUrl = getProxiedUrl(url);
-        console.log('加载视频源:', finalUrl);
-        
-        // 先暂停当前播放
-        player.pause();
-        
-        // 清空当前源
-        player.src('');
-        
-        // 短暂延迟后设置新源
-        setTimeout(() => {
+            // 先暂停当前播放
+            player.pause();
+            
+            // 设置新源
             player.src({
-                src: finalUrl,
+                src: url,
                 type: 'application/x-mpegURL'
             });
             
             // 尝试播放
             player.play().catch(e => {
-                // 自动播放失败是正常的（浏览器策略），不显示错误
                 console.log('自动播放被阻止:', e);
-                // 显示提示信息但不作为错误
-                showError('点击播放按钮开始播放', 'info');
             });
-        }, 200);
+
+        } catch (e) {
+            showError(`播放失败: ${e.message}`);
+        }
     }
 
     // 停止播放
@@ -447,7 +331,6 @@ h1 {
             player.pause();
             player.src('');
             hideError();
-            corsWarning.style.display = 'none';
         }
     }
 
@@ -478,19 +361,10 @@ h1 {
         stopPlayback();
     }
 
-    // 显示错误或信息
-    function showError(msg, type = 'error') {
+    // 显示错误
+    function showError(msg) {
         errorMessage.textContent = msg;
         errorMessage.style.display = 'block';
-        if (type === 'error') {
-            errorMessage.style.background = '#fdeaea';
-            errorMessage.style.color = '#e74c3c';
-            errorMessage.style.borderLeftColor = '#e74c3c';
-        } else {
-            errorMessage.style.background = '#e8f5e9';
-            errorMessage.style.color = '#2e7d32';
-            errorMessage.style.borderLeftColor = '#4caf50';
-        }
     }
 
     // 隐藏错误
@@ -498,17 +372,11 @@ h1 {
         errorMessage.style.display = 'none';
     }
 
-    // 安装CORS扩展（引导用户）
-    function installCorsExtension() {
-        window.open('https://chrome.google.com/webstore/search/allow%20cors', '_blank');
-    }
-
     // 暴露全局方法
     window.playM3U8 = playM3U8;
     window.stopPlayback = stopPlayback;
     window.loadExample = loadExample;
     window.clearUrl = clearUrl;
-    window.installCorsExtension = installCorsExtension;
 
     // 页面加载后初始化播放器
     window.addEventListener('DOMContentLoaded', () => {
